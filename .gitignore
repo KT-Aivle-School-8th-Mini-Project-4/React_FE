@@ -1,0 +1,6 @@
+# .gitignore 내용
+node_modules/
+dist/
+.idea/
+.DS_Store
+*.local
