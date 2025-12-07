@@ -23,9 +23,9 @@ interface SidebarProps {
   loans: Loan[];
   currentUser: User | null;
   isOpen: boolean;
-  selectedGenre: string;
+  selectedCategory: string;
   sortBy: 'title' | 'year' | 'author';
-  onGenreChange: (genre: string) => void;
+  onCategoryChange: (category: string) => void;
   onSortChange: (sort: 'title' | 'year' | 'author') => void;
   onClose: () => void;
 }
@@ -35,8 +35,8 @@ export function Sidebar({
   loans,
   currentUser,
   isOpen,
-  selectedGenre,
-  onGenreChange,
+  selectedCategory,
+  onCategoryChange,
   onClose
 }: SidebarProps) {
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
@@ -80,30 +80,30 @@ export function Sidebar({
 
   // Calculate statistics
   const stats = useMemo(() => {
-    const genreCounts: Record<string, number> = {};
-    const genreRatings: Record<string, number[]> = {};
+    const categoryCounts: Record<string, number> = {};
+    const categoryRatings: Record<string, number[]> = {};
     let totalBooks = books.length;
 
     books.forEach(book => {
-      genreCounts[book.genre] = (genreCounts[book.genre] || 0) + 1;
+      categoryCounts[book.category] = (categoryCounts[book.category] || 0) + 1;
       
       // Collect all ratings for each genre
-      if (!genreRatings[book.genre]) {
-        genreRatings[book.genre] = [];
+      if (!categoryRatings[book.category]) {
+        categoryRatings[book.category] = [];
       }
       book.ratings.forEach(r => {
-        genreRatings[book.genre].push(r.rating);
+        categoryRatings[book.category].push(r.rating);
       });
     });
 
     // Calculate average rating and sort genres by rating
-    const genreRatingData = Object.entries(genreRatings)
-      .map(([genre, ratings]) => {
+    const categoryRatingData = Object.entries(categoryRatings)
+      .map(([category, ratings]) => {
         if (ratings.length === 0) {
-          return { genre, average: 0, ratings: [], hasRatings: false };
+          return { category, average: 0, ratings: [], hasRatings: false };
         }
         const average = ratings.reduce((a, b) => a + b, 0) / ratings.length;
-        return { genre, average, ratings, hasRatings: true };
+        return { category, average, ratings, hasRatings: true };
       })
       .sort((a, b) => {
         // If both have no ratings, maintain order
@@ -133,22 +133,22 @@ export function Sidebar({
         return bFiveStars - aFiveStars;
       });
 
-    const sortedGenres = Object.entries(genreCounts)
+    const sortedCategories = Object.entries(categoryCounts)
       .sort((a, b) => b[1] - a[1]);
 
     // Get top 3 genres by rating
-    const topGenresByRating = genreRatingData
+    const topCategoriesByRating = categoryRatingData
       .filter(g => g.hasRatings)
       .slice(0, 3);
 
     return {
       totalBooks,
-      genreCounts: sortedGenres,
-      topGenresByRating
+      categoryCounts: sortedCategories,
+      topCategoriesByRating
     };
   }, [books]);
 
-  const genres = ['전체', '소설', 'SF', '판타지', '미스터리', '로맨스', '자기계발', '에세이', '역사', '과학', '기타'];
+  const categories = ['전체', '소설', 'SF', '판타지', '미스터리', '로맨스', '자기계발', '에세이', '역사', '과학', '기타'];
 
   return (
     <>
@@ -216,21 +216,21 @@ export function Sidebar({
                   <TrendingUp className="w-4 h-4 text-purple-600" />
                 </div>
                 <div className="space-y-1">
-                  {stats.topGenresByRating.length > 0 ? (
+                  {stats.topCategoriesByRating.length > 0 ? (
                     <>
-                      {stats.topGenresByRating[0] && (
+                      {stats.topCategoriesByRating[0] && (
                         <p className="text-sm text-purple-900">
-                          1위: {stats.topGenresByRating[0].genre} (⭐ {stats.topGenresByRating[0].average.toFixed(1)})
+                          1위: {stats.topCategoriesByRating[0].category} (⭐ {stats.topCategoriesByRating[0].average.toFixed(1)})
                         </p>
                       )}
-                      {stats.topGenresByRating[1] && (
+                      {stats.topCategoriesByRating[1] && (
                         <p className="text-sm text-purple-800">
-                          2위: {stats.topGenresByRating[1].genre} (⭐ {stats.topGenresByRating[1].average.toFixed(1)})
+                          2위: {stats.topCategoriesByRating[1].category} (⭐ {stats.topCategoriesByRating[1].average.toFixed(1)})
                         </p>
                       )}
-                      {stats.topGenresByRating[2] && (
+                      {stats.topCategoriesByRating[2] && (
                         <p className="text-sm text-purple-700">
-                          3위: {stats.topGenresByRating[2].genre} (⭐ {stats.topGenresByRating[2].average.toFixed(1)})
+                          3위: {stats.topCategoriesByRating[2].category} (⭐ {stats.topCategoriesByRating[2].average.toFixed(1)})
                         </p>
                       )}
                     </>
@@ -356,8 +356,8 @@ export function Sidebar({
             </div>
           )}
 
-          {/* Genre Distribution */}
-          {stats.genreCounts.length > 0 && (
+          {/* Category Distribution */}
+          {stats.categoryCounts.length > 0 && (
             <div>
               <button
                 onClick={() => setIsDistributionOpen(!isDistributionOpen)}
@@ -378,12 +378,12 @@ export function Sidebar({
                   isDistributionOpen ? 'max-h-[400px] opacity-100' : 'max-h-0 opacity-0'
                 }`}
               >
-                {stats.genreCounts.slice(0, 5).map(([genre, count]) => {
+                {stats.categoryCounts.slice(0, 5).map(([category, count]) => {
                   const percentage = (count / stats.totalBooks) * 100;
                   return (
-                    <div key={genre}>
+                    <div key={category}>
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs text-gray-600">{genre}</span>
+                        <span className="text-xs text-gray-600">{category}</span>
                         <span className="text-xs text-gray-500">{count}권</span>
                       </div>
                       <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
@@ -420,25 +420,25 @@ export function Sidebar({
                 isCategoryOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
               }`}
             >
-              {genres.map(genre => {
-                const count = genre === '전체' 
+              {categories.map(category => {
+                const count = category === '전체'
                   ? books.length 
-                  : books.filter(b => b.genre === genre).length;
+                  : books.filter(b => b.category === category).length;
                 
                 return (
                   <button
-                    key={genre}
-                    onClick={() => onGenreChange(genre)}
+                    key={category}
+                    onClick={() => onCategoryChange(category)}
                     className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg transition-all ${
-                      selectedGenre === genre
+                      selectedCategory === category
                         ? 'bg-blue-600 text-white shadow-sm'
                         : 'hover:bg-gray-100 text-gray-700'
                     }`}
                   >
-                    <span className="text-sm">{genre}</span>
+                    <span className="text-sm">{category}</span>
                     <span
                       className={`text-xs px-2 py-0.5 rounded-full ${
-                        selectedGenre === genre
+                        selectedCategory === category
                           ? 'bg-blue-500 text-white'
                           : 'bg-gray-200 text-gray-600'
                       }`}

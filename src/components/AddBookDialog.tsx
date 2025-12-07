@@ -240,6 +240,7 @@ import { useState, useEffect } from 'react';
 import { Book } from '../App';
 import { X, Sparkles } from 'lucide-react';
 import { AIImageGenerator } from './AIImageGenerator';
+import * as React from 'react';
 
 interface AddBookDialogProps {
     book: Book | null;          // null → 신규 등록, Book → 수정
@@ -251,12 +252,12 @@ export function AddBookDialog({ book, onClose, onSave }: AddBookDialogProps) {
     // ⭐ formData 상태 (등록/수정 공통)
     const [formData, setFormData] = useState({
         title: '',
-        author: '',
-        genre: '소설',
+        // author: '',
+        category: '소설',
         description: '',
         coverImage: '',
-        publishedYear: new Date().getFullYear(), //연도만?
-        isbn: ''
+        publishedYear: new Date().getFullYear() //연도만?
+        // isbn: ''
     });
 
     const [showAIGenerator, setShowAIGenerator] = useState(false);
@@ -266,12 +267,12 @@ export function AddBookDialog({ book, onClose, onSave }: AddBookDialogProps) {
         if (book) {
             setFormData({
                 title: book.title,
-                author: book.author,
-                genre: book.genre,
+                // author: book.author,
+                category: book.category,
                 description: book.description,
                 coverImage: book.coverImage,
-                publishedYear: book.publishedYear,
-                isbn: book.isbn || ''
+                publishedYear: book.publishedYear
+                // isbn: book.isbn || ''
             });
         }
     }, [book]);
@@ -343,40 +344,40 @@ export function AddBookDialog({ book, onClose, onSave }: AddBookDialogProps) {
                         onChange={(v) => handleChange("title", v)}
                     />
 
-                    {/* 저자 */}
-                    <InputField
-                        label="저자 *"
-                        value={formData.author}
-                        onChange={(v) => handleChange("author", v)}
-                    />
+                    {/*/!* 저자 *!/*/}
+                    {/*<InputField*/}
+                    {/*    label="저자 *"*/}
+                    {/*    value={formData.author}*/}
+                    {/*    onChange={(v) => handleChange("author", v)}*/}
+                    {/*/>*/}
 
                     {/* 장르 + 출판년도 */}
                     <div className="grid grid-cols-2 gap-4">
                         <SelectField
-                            label="장르"
-                            value={formData.genre}
+                            label="분류"
+                            value={formData.category}
                             options={["소설", "SF", "판타지", "미스터리", "로맨스", "자기계발", "에세이", "역사", "과학", "기타"]}
-                            onChange={(v) => handleChange("genre", v)}
+                            onChange={(v) => handleChange("category", v)}
                         />
 
                         <InputField
-                            label="출판년도"
+                            label="등록일"
                             type="number"
                             value={formData.publishedYear}
                             onChange={(v) => handleChange("publishedYear", Number(v))}
                         />
                     </div>
 
-                    {/* ISBN */}
-                    <InputField
-                        label="ISBN"
-                        value={formData.isbn}
-                        onChange={(v) => handleChange("isbn", v)}
-                    />
+                    {/*/!* ISBN *!/*/}
+                    {/*<InputField*/}
+                    {/*    label="ISBN"*/}
+                    {/*    value={formData.isbn}*/}
+                    {/*    onChange={(v) => handleChange("isbn", v)}*/}
+                    {/*/>*/}
 
-                    {/* 설명 */}
+                    {/* 내용 */}
                     <TextareaField
-                        label="설명"
+                        label="내용"
                         value={formData.description}
                         onChange={(v) => handleChange("description", v)}
                     />
@@ -403,8 +404,9 @@ export function AddBookDialog({ book, onClose, onSave }: AddBookDialogProps) {
             {/* AI 생성 팝업 */}
             {showAIGenerator && (
                 <AIImageGenerator
+                    bookId={book.id}
                     bookTitle={formData.title}
-                    bookGenre={formData.genre}
+                    bookCategory={formData.category}
                     onClose={() => setShowAIGenerator(false)}
                     onGenerate={handleAIGenerate}
                 />
@@ -487,6 +489,7 @@ function CoverImageField({ coverImage, onChange, onOpenAI }) {
             {coverImage && (
                 <img
                     src={coverImage}
+                    alt = "book-cover-image"
                     className="w-32 h-44 mt-3 border rounded mx-auto object-cover"
                     onError={(e) =>
                         (e.currentTarget.src =

@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { X, Sparkles, Wand2, RefreshCw, Palette, Image as ImageIcon } from 'lucide-react';
 
 interface AIImageGeneratorProps {
+  bookId: string;
   bookTitle: string;
-  bookGenre: string;
+  bookCategory: string;
   onClose: () => void;
   onGenerate: (imageUrl: string) => void;
 }
 
-export function AIImageGenerator({ bookTitle, bookGenre, onClose, onGenerate }: AIImageGeneratorProps) {
+export function AIImageGenerator({ bookTitle, bookCategory, onClose, onGenerate }: AIImageGeneratorProps) {
   const [prompt, setPrompt] = useState('');
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -118,39 +119,60 @@ export function AIImageGenerator({ bookTitle, bookGenre, onClose, onGenerate }: 
         setGeneratedImages([]);
         setSelectedImage(null);
 
-        try {
-            const response = await fetch("http://localhost:8080/api/book/cover/generate", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    title: bookTitle,
-                    genre: bookGenre,
-                    prompt: prompt.trim(),
-                    style: activeStyle
-                })
-            });
+        const mockImages = [
+            "https://picsum.photos/seed/mock1/400/600",
+            "https://picsum.photos/seed/mock2/400/600",
+            "https://picsum.photos/seed/mock3/400/600",
+            "https://picsum.photos/seed/mock4/400/600",
+            "https://picsum.photos/seed/mock5/400/600",
+            "https://picsum.photos/seed/mock6/400/600"
+        ];
 
-            if (!response.ok) {
-                alert("이미지 생성 실패");
-                return;
-            }
+        // 1초 기다리는 효과 넣기 (로딩 테스트)
+        await new Promise(res => setTimeout(res, 800));
 
-            const data = await response.json();
-            setGeneratedImages(data.images); // 백엔드 생성 이미지
-        } catch (error) {
-            alert("이미지 생성 중 오류 발생");
-        } finally {
-            setIsGenerating(false);
-        }
+        setGeneratedImages(mockImages);
+        setIsGenerating(false);
     };
+
+    //     try {
+    //         const response = await fetch("http://localhost:8080/api/book/cover/generate", {
+    //             method: "POST",
+    //             headers: { "Content-Type": "application/json" },
+    //             body: JSON.stringify({
+    //                 title: bookTitle,
+    //                 genre: bookGenre,
+    //                 prompt: prompt.trim(),
+    //                 style: activeStyle
+    //             })
+    //         });
+    //
+    //         if (!response.ok) {
+    //             alert("이미지 생성 실패");
+    //             return;
+    //         }
+    //
+    //         const data = await response.json();
+    //         setGeneratedImages(data.images); // 백엔드 생성 이미지
+    //     } catch (error) {
+    //         alert("이미지 생성 중 오류 발생");
+    //     } finally {
+    //         setIsGenerating(false);
+    //     }
+    // };
 
 
     const handleUseImage = async () => {
         if (!selectedImage) return;
 
+        // PATCH 요청 없이 부모에 반영만
+    //     onGenerate(selectedImage);
+    //     onClose();
+    // };
+
         try {
             const response = await fetch(`http://localhost:8080/api/book/${bookId}/cover`, {
-                method: "PUT",
+                method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ coverImage: selectedImage })
             });
@@ -160,9 +182,14 @@ export function AIImageGenerator({ bookTitle, bookGenre, onClose, onGenerate }: 
                 return;
             }
 
+            const data = await response.json();
+            console.log("표지 업데이트 성공:" ,data);
+
             onGenerate(selectedImage); // 상위 컴포넌트에 반영
             onClose();
+
         } catch (error) {
+            console.error("표지 저장 중 오류 발생", error);
             alert("표지 저장 중 오류 발생");
         }
     };
@@ -202,7 +229,7 @@ export function AIImageGenerator({ bookTitle, bookGenre, onClose, onGenerate }: 
                 <h3 className="text-gray-900 mb-1">
                   {bookTitle || '제목 미입력'}
                 </h3>
-                <p className="text-sm text-gray-600">장르: {bookGenre}</p>
+                <p className="text-sm text-gray-600">장르: {bookCategory}</p>
               </div>
             </div>
           </div>
@@ -246,7 +273,7 @@ export function AIImageGenerator({ bookTitle, bookGenre, onClose, onGenerate }: 
             <p className="text-xs text-gray-500 mt-2">
               {prompt.trim() 
                 ? `* "${prompt}" 키워드로 6가지 이미지를 생성합니다` 
-                : `* "${bookGenre}" 장르를 바탕으로 6가지 이미지를 생성합니다`}
+                : `* "${bookCategory}" 장르를 바탕으로 6가지 이미지를 생성합니다`}
             </p>
           </div>
 

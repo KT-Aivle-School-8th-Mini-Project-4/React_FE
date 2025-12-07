@@ -4,13 +4,13 @@ import { X, Key, BookOpen, Edit2, Trash2, CheckCircle, AlertCircle, Package, Cal
 
 interface MyPageProps {
   user: User;
-  // books: Book[];
+  books: Book[];
   loans: Loan[];
   allBooks: Book[];
   onClose: () => void;
   onPasswordChange: (newPassword: string) => void;
-  // onEditBook: (book: Book) => void;
-  // onDeleteBook: (id: string) => void;
+  onEditBook: (book: Book) => void;
+  onDeleteBook: (id: string) => void;
   onReturnBook: (loanId: string) => void;
   onExtendLoan: (loanId: string) => void;
 }
@@ -25,24 +25,48 @@ export function MyPage({ user, books, loans, allBooks, onClose, onPasswordChange
   const [myBooks, setMyBooks] = useState<Book[]>([]);
   const [loadingMyBooks, setLoadingMyBooks] = useState(true);
 
-  useEffect(() => {
-    const fetchMyBooks = async () => {
-      try {
-        const response = await fetch(`http://localhost:8080/api/book/user/${user.id}`);
-        if (!response.ok) throw new Error("내 도서 조회 실패");
+    useEffect(() => {
+        setLoadingMyBooks(true);
 
-        const data = await response.json();
-        setMyBooks(data);
-      } catch (err) {
-        console.error("내 도서 불러오기 실패:", err);
-      } finally {
-        setLoadingMyBooks(false);
-      }
-    };
+        // API 대신 가짜 데이터 사용
+        setTimeout(() => {
+            setMyBooks([
+                {
+                    id: "101",
+                    title: "테스트 도서 1",
+                    author: "홍길동",
+                    category: "소설",
+                    description: "홍길동ㅇ",
+                    coverImage: "https://picsum.photos/200/301",
+                    publishedYear: 2023,
+                    createdAt: new Date(),
+                }
+            ]);
+            setLoadingMyBooks(false);
+        }, 500);
+    }, [user.id]);
 
-    fetchMyBooks();
-  }, [user.id]);
-//
+
+// 실제 api 사용
+    // useEffect(() => {
+  //   const fetchMyBooks = async () => {
+  //     try {
+  //       const response = await fetch(`http://localhost:8080/api/book/user/${user.id}`);
+  //       if (!response.ok) throw new Error("내 도서 조회 실패");
+  //
+  //       const data = await response.json();
+  //       setMyBooks(data);
+  //     } catch (err) {
+  //       console.error("내 도서 불러오기 실패:", err);
+  //     } finally {
+  //       setLoadingMyBooks(false);
+  //     }
+  //   };
+  //
+  //   fetchMyBooks();
+  // }, [user.id]);
+
+
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -255,10 +279,10 @@ export function MyPage({ user, books, loans, allBooks, onClose, onPasswordChange
                         />
                         <div className="flex-1 min-w-0">
                           <h4 className="text-gray-900 mb-1 truncate">{book.title}</h4>
-                          <p className="text-sm text-gray-600 mb-2">{book.author}</p>
+                          {/*<p className="text-sm text-gray-600 mb-2">{book.author}</p>*/}
                           <div className="flex items-center gap-3 text-xs text-gray-500 mb-3">
                             <span className="px-2 py-1 bg-blue-100 text-blue-600 rounded">
-                              {book.genre}
+                              {book.category}
                             </span>
                             <span>{book.publishedYear}년</span>
                             <span>등록일: {formatDate(book.createdAt)}</span>
@@ -331,7 +355,7 @@ export function MyPage({ user, books, loans, allBooks, onClose, onPasswordChange
 
                                           <div className="flex items-center gap-3 text-xs text-gray-500 mb-3">
                 <span className="px-2 py-1 bg-blue-100 text-blue-600 rounded">
-                  {book.genre}
+                  {book.category}
                 </span>
                                               <span>{book.publishedYear}년</span>
                                               <span>등록일: {formatDate(book.createdAt)}</span>
@@ -425,11 +449,11 @@ export function MyPage({ user, books, loans, allBooks, onClose, onPasswordChange
                             />
                             <div className="flex-1 min-w-0">
                               <h4 className="text-gray-900 mb-1 truncate">{book.title}</h4>
-                              <p className="text-sm text-gray-600 mb-2">{book.author}</p>
+                              {/*<p className="text-sm text-gray-600 mb-2">{book.author}</p>*/}
                               
                               <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 mb-3">
                                 <span className="px-2 py-1 bg-blue-100 text-blue-600 rounded">
-                                  {book.genre}
+                                  {book.category}
                                 </span>
                                 <span className="flex items-center gap-1">
                                   <Calendar className="w-3 h-3" />

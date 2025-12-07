@@ -840,11 +840,11 @@ export function BookDetailDialog({
 
                         <div className="flex-1 space-y-4">
                             <h3 className="text-2xl font-semibold">{bookData.title}</h3>
-                            <p className="text-gray-700">{bookData.author}</p>
+                            {/*<p className="text-gray-700">{bookData.author}</p>*/}
 
                             <div className="text-sm text-gray-500">
                                 <div className="flex items-center gap-2">
-                                    <Tag className="w-4 h-4" /> {bookData.genre}
+                                    <Tag className="w-4 h-4" /> {bookData.category}
                                 </div>
 
                                 <div className="flex items-center gap-2 mt-1">

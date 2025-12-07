@@ -27,7 +27,7 @@ export function BookCard({ book, isSelected, onSelect, onBookClick, isSelectionM
     return sum / book.ratings.length;
   };
 
-  // Calculate available stock (total stock - currently loaned books)
+  // Calculate available stock (total stock - currently loaned books), 연동 시
   const calculateAvailableStock = () => {
     const currentlyLoaned = loans.filter(
       (loan: Loan) => loan.bookId === book.id && !loan.returnDate
@@ -68,14 +68,14 @@ export function BookCard({ book, isSelected, onSelect, onBookClick, isSelectionM
           className="w-full h-full object-cover"
         />
         <div className="absolute top-1 right-1 bg-blue-600 text-white px-1.5 py-0.5 rounded text-[10px]">
-          {book.genre}
+          {book.category}
         </div>
       </div>
 
       {/* Book Info */}
       <div className="p-3">
         <h3 className="text-sm text-gray-900 mb-1 line-clamp-1">{book.title}</h3>
-        <p className="text-xs text-gray-600 mb-2">{book.author}</p>
+        {/*<p className="text-xs text-gray-600 mb-2">{book.author}</p>*/}
         
         <p className="text-xs text-gray-500 line-clamp-2 mb-3">
           {book.description}

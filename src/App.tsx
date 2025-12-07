@@ -49,11 +49,11 @@ export interface Book {
   id: string;
   title: string;
   // author: string;
-  genre: string;
+  category: string;
   description: string;
   coverImage: string;
   publishedYear: number;
-  isbn?: string;
+  // isbn?: string;
   createdBy: string; // User ID who created this book
   createdAt: Date;
   ratings: Rating[]; // Array of ratings
@@ -143,7 +143,7 @@ export default function App() {
 
 
 
-    // Initialize books from localStorage or use default data
+    // Initialize books
   const [books, setBooks] = useState<Book[]>([]);
 
     const fetchBooks = async () => {
@@ -159,7 +159,50 @@ export default function App() {
      useEffect(() => {
         fetchBooks();
         }, []);
-    
+
+    // mock data로 첫 화면 테스트
+    // useEffect(() => {
+    //     // 🔥 1) 실제 fetchBooks 임시 비활성화
+    //     // fetchBooks();
+    //
+    //     // 🔥 2) mock data 삽입
+    //     const mockBooks: Book[] = [
+    //         {
+    //             id: "1",
+    //             title: "모던 자바스크립트 Deep Dive",
+    //             author: "이웅모",
+    //             genre: "프로그래밍",
+    //             publishedYear: 2020,
+    //             isbn: "123456789",
+    //             description: "자바스크립트의 원리를 깊게 설명한 책",
+    //             coverImage: "https://picsum.photos/200/300",
+    //             stock: 5,
+    //             ratings: [{ userId: "user1", rating: 5 }],
+    //             reviews: [],
+    //             createdAt: new Date(),
+    //             createdBy: "admin"
+    //         },
+    //         {
+    //             id: "2",
+    //             title: "Clean Code",
+    //             author: "Robert C. Martin",
+    //             genre: "프로그래밍",
+    //             publishedYear: 2008,
+    //             isbn: "987654321",
+    //             description: "좋은 코드 작성의 원칙을 설명한 고전 명서",
+    //             coverImage: "https://picsum.photos/200/301",
+    //             stock: 2,
+    //             ratings: [],
+    //             reviews: [],
+    //             createdAt: new Date(),
+    //             createdBy: "admin"
+    //         }
+    //     ];
+    //
+    //     setBooks(mockBooks);
+    // }, []);
+
+
     // Default initial data - Load from initialBooks
   //   return initialBooks.map(book => ({
   //     ...book,
@@ -184,7 +227,7 @@ export default function App() {
   
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedGenre, setSelectedGenre] = useState<string>('전체');
+  const [selectedCategory, setSelectedCategory] = useState<string>('전체');
   // const [sortBy, setSortBy] = useState<'title' | 'year' | 'author'>('title');
   const [sortBy, setSortBy] = useState<'title' | 'year'>('title');
 
@@ -264,18 +307,18 @@ export default function App() {
       // if (oldBook.author !== book.author) {
       //   changes.push({ field: '저자', oldValue: oldBook.author, newValue: book.author });
       // }
-      if (oldBook.genre !== book.genre) {
-        changes.push({ field: '장르', oldValue: oldBook.genre, newValue: book.genre });
+      if (oldBook.category !== book.category) {
+        changes.push({ field: '분류', oldValue: oldBook.category, newValue: book.category });
       }
       if (oldBook.description !== book.description) {
-        changes.push({ field: '설명', oldValue: oldBook.description, newValue: book.description });
+        changes.push({ field: '내용', oldValue: oldBook.description, newValue: book.description });
       }
       if (oldBook.publishedYear !== book.publishedYear) {
         changes.push({ field: '출판연도', oldValue: oldBook.publishedYear.toString(), newValue: book.publishedYear.toString() });
       }
-      if (oldBook.isbn !== book.isbn) {
-        changes.push({ field: 'ISBN', oldValue: oldBook.isbn || '', newValue: book.isbn || '' });
-      }
+      // if (oldBook.isbn !== book.isbn) {
+      //   changes.push({ field: 'ISBN', oldValue: oldBook.isbn || '', newValue: book.isbn || '' });
+      // }
 
       if (changes.length > 0) {
         const editRecord: EditRecord = {
@@ -394,9 +437,9 @@ export default function App() {
         // book.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
         book.description.toLowerCase().includes(searchQuery.toLowerCase());
       
-      const matchesGenre = selectedGenre === '전체' || book.genre === selectedGenre;
+      const matchesCategory = selectedCategory === '전체' || book.category === selectedCategory;
       
-      return matchesSearch && matchesGenre;
+      return matchesSearch && matchesCategory;
     })
     .sort((a, b) => {
       if (sortBy === 'title') {
@@ -694,9 +737,9 @@ const handleLoanBook = async (bookId: string) => {
         loans={loans}
         currentUser={currentUser}
         isOpen={isSidebarOpen}
-        selectedGenre={selectedGenre}
+        selectedCategory={selectedCategory}
         sortBy={sortBy}
-        onGenreChange={setSelectedGenre}
+        onCategoryChange={setSelectedCategory()}
         onSortChange={setSortBy}
         onClose={() => setIsSidebarOpen(false)}
       />
@@ -707,7 +750,7 @@ const handleLoanBook = async (bookId: string) => {
           <div className="flex items-center gap-4">
             <div>
               <h2 className="text-gray-700 mb-1">
-                {selectedGenre === '전체' ? '전체 도서' : `${selectedGenre} 도서`}
+                {selectedCategory === '전체' ? '전체 도서' : `${selectedCategory} 도서`}
               </h2>
               <p className="text-sm text-gray-500">
                 {filteredBooks.length}권의 도서

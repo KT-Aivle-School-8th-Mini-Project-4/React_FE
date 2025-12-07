@@ -10,7 +10,8 @@ interface BookInventoryDialogProps {
   onEditBook: (book: Book) => void;
 }
 
-type SortField = 'title' | 'author' | 'genre' | 'isbn' | 'stock' | 'totalLoaned' | 'available' | 'loanRate';
+// type SortField = 'title' | 'author' | 'genre' | 'isbn' | 'stock' | 'totalLoaned' | 'available' | 'loanRate';
+type SortField = 'title' | 'category' | 'stock' | 'totalLoaned' | 'available' | 'loanRate';
 type SortDirection = 'asc' | 'desc';
 
 export function BookInventoryDialog({ books, loans, onClose, onEditBook }: BookInventoryDialogProps) {
@@ -39,9 +40,9 @@ export function BookInventoryDialog({ books, loans, onClose, onEditBook }: BookI
     const query = searchQuery.toLowerCase();
     return (
       book.title.toLowerCase().includes(query) ||
-      book.author.toLowerCase().includes(query) ||
-      book.genre.toLowerCase().includes(query) ||
-      book.isbn?.toLowerCase().includes(query)
+      // book.author.toLowerCase().includes(query) ||
+      book.category.toLowerCase().includes(query)
+      // book.isbn?.toLowerCase().includes(query)
     );
   });
 
@@ -184,33 +185,33 @@ export function BookInventoryDialog({ books, loans, onClose, onEditBook }: BookI
                         {sortBy === 'title' && (sortDirection === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />)}
                       </button>
                     </th>
+                    {/*<th className="px-4 py-3 text-left text-sm text-gray-600 whitespace-nowrap">*/}
+                    {/*  <button*/}
+                    {/*    className="flex items-center gap-1 hover:text-gray-900 transition-colors"*/}
+                    {/*    onClick={() => handleSort('author')}*/}
+                    {/*  >*/}
+                    {/*    저자*/}
+                    {/*    {sortBy === 'author' && (sortDirection === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />)}*/}
+                    {/*  </button>*/}
+                    {/*</th>*/}
                     <th className="px-4 py-3 text-left text-sm text-gray-600 whitespace-nowrap">
                       <button
                         className="flex items-center gap-1 hover:text-gray-900 transition-colors"
-                        onClick={() => handleSort('author')}
-                      >
-                        저자
-                        {sortBy === 'author' && (sortDirection === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />)}
-                      </button>
-                    </th>
-                    <th className="px-4 py-3 text-left text-sm text-gray-600 whitespace-nowrap">
-                      <button
-                        className="flex items-center gap-1 hover:text-gray-900 transition-colors"
-                        onClick={() => handleSort('genre')}
+                        onClick={() => handleSort('category')}
                       >
                         장르
-                        {sortBy === 'genre' && (sortDirection === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />)}
+                        {sortBy === 'category' && (sortDirection === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />)}
                       </button>
                     </th>
-                    <th className="px-4 py-3 text-left text-sm text-gray-600 whitespace-nowrap">
-                      <button
-                        className="flex items-center gap-1 hover:text-gray-900 transition-colors"
-                        onClick={() => handleSort('isbn')}
-                      >
-                        ISBN
-                        {sortBy === 'isbn' && (sortDirection === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />)}
-                      </button>
-                    </th>
+                    {/*<th className="px-4 py-3 text-left text-sm text-gray-600 whitespace-nowrap">*/}
+                    {/*  <button*/}
+                    {/*    className="flex items-center gap-1 hover:text-gray-900 transition-colors"*/}
+                    {/*    onClick={() => handleSort('isbn')}*/}
+                    {/*  >*/}
+                    {/*    ISBN*/}
+                    {/*    {sortBy === 'isbn' && (sortDirection === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />)}*/}
+                    {/*  </button>*/}
+                    {/*</th>*/}
                     <th className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
                       <button
                         className="flex items-center gap-1 mx-auto hover:text-gray-900 transition-colors"
@@ -269,17 +270,17 @@ export function BookInventoryDialog({ books, loans, onClose, onEditBook }: BookI
                         <td className="px-4 py-3 whitespace-nowrap">
                           <p className="text-gray-900 max-w-xs truncate">{book.title}</p>
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <p className="text-gray-700">{book.author}</p>
-                        </td>
+                        {/*<td className="px-4 py-3 whitespace-nowrap">*/}
+                        {/*  <p className="text-gray-700">{book.author}</p>*/}
+                        {/*</td>*/}
                         <td className="px-4 py-3 whitespace-nowrap">
                           <span className="px-2 py-1 bg-blue-100 text-blue-600 text-xs rounded">
-                            {book.genre}
+                            {book.category}
                           </span>
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <p className="text-gray-600 text-sm">{book.isbn || '-'}</p>
-                        </td>
+                        {/*<td className="px-4 py-3 whitespace-nowrap">*/}
+                        {/*  <p className="text-gray-600 text-sm">{book.isbn || '-'}</p>*/}
+                        {/*</td>*/}
                         <td className="px-4 py-3 text-center whitespace-nowrap">
                           <p className="text-gray-900">{book.stock}</p>
                         </td>
