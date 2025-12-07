@@ -1,18 +1,54 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BookList } from './components/BookList';
 import { AddBookDialog } from './components/AddBookDialog';
 import { Sidebar } from './components/Sidebar';
-import { HistoryDialog } from './components/HistoryDialog';
 import { LoginScreen } from './components/LoginScreen';
 import { MyPage } from './components/MyPage';
 import { BookDetailDialog } from './components/BookDetailDialog';
-import { Plus, Menu, X, Edit2, Trash2, Search, History, LogOut, User as UserIcon } from 'lucide-react';
+import { BookInventoryDialog } from './components/BookInventoryDialog';
+import { Plus, Menu, X, Edit2, Trash2, Search, LogOut, User as UserIcon, Package } from 'lucide-react';
 import ktAivleLogo from 'figma:asset/e5ac75b360c5f16e2a9a70e851e77229ca22f463.png';
+//import { initialBooks } from './data/initialBooks';
+
+export interface Rating {
+  userId: string;
+  rating: number;
+  timestamp: Date;
+}
+
+export interface Review {
+  id: string;
+  userId: string;
+  comment: string;
+  timestamp: Date;
+}
+
+// export interface Loan {
+//   id: string;
+//   bookId: string;
+//   userId: string;
+//   loanDate: Date;
+//   dueDate: Date;
+//   returnDate?: Date;
+//   extended: boolean; // Whether the loan has been extended
+// }
+
+export interface Loan {
+    id: string;
+    bookId: string;
+    userId: string;
+    loanDate: string;
+    dueDate: string;
+    returnDate?: string;
+    extended?: boolean;
+    extensionCount?: number;
+}
+
 
 export interface Book {
   id: string;
   title: string;
-  author: string;
+  // author: string;
   genre: string;
   description: string;
   coverImage: string;
@@ -20,6 +56,9 @@ export interface Book {
   isbn?: string;
   createdBy: string; // User ID who created this book
   createdAt: Date;
+  ratings: Rating[]; // Array of ratings
+  reviews: Review[]; // Array of reviews
+  stock: number; // Total stock count
 }
 
 export interface EditRecord {
@@ -48,302 +87,86 @@ export interface User {
 }
 
 export default function App() {
-  const [users, setUsers] = useState<User[]>([
-    { id: 'ADMIN', password: '1234', role: 'admin' },
-    { id: 'KT', password: '1234', role: 'user' }
-  ]);
+  const [users, setUsers] = useState<User[]>(() => {
+    const savedUsers = localStorage.getItem('users');
+    if (savedUsers) {
+      try {
+        return JSON.parse(savedUsers);
+      } catch (e) {
+        console.error('Error parsing saved users:', e);
+      }
+    }
+    return [
+      { id: 'ADMIN', password: '1234', role: 'admin' },
+      { id: 'KT', password: '1234', role: 'user' }
+    ];
+  });
   
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [books, setBooks] = useState<Book[]>([
-    {
-      id: '1',
-      title: '달과 6펜스',
-      author: '서머싯 모옴',
-      genre: '소설',
-      description: '평범한 증권 중개인이 예술가의 꿈을 좇아 모든 것을 버리는 이야기',
-      coverImage: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=400',
-      publishedYear: 1919,
-      isbn: '978-1234567890',
-      createdBy: 'ADMIN',
-      createdAt: new Date('2024-01-01')
-    },
-    {
-      id: '2',
-      title: '1984',
-      author: '조지 오웰',
-      genre: 'SF',
-      description: '전체주의 사회를 그린 디스토피아 소설',
-      coverImage: 'https://images.unsplash.com/photo-1495446815901-a7297e633e8d?w=400',
-      publishedYear: 1949,
-      isbn: '978-0987654321',
-      createdBy: 'ADMIN',
-      createdAt: new Date('2024-01-02')
-    },
-    {
-      id: '3',
-      title: '해리포터와 마법사의 돌',
-      author: 'J.K. 롤링',
-      genre: '판타지',
-      description: '마법 세계로 초대받은 소년의 모험',
-      coverImage: 'https://images.unsplash.com/photo-1621351183012-e2f9972dd9bf?w=400',
-      publishedYear: 1997,
-      isbn: '978-1111111111',
-      createdBy: 'KT',
-      createdAt: new Date('2024-01-03')
-    },
-    {
-      id: '4',
-      title: '코스모스',
-      author: '칼 세이건',
-      genre: '과학',
-      description: '우주와 인류의 역사를 탐험하는 과학 에세이',
-      coverImage: 'https://images.unsplash.com/photo-1464802686167-b939a6910659?w=400',
-      publishedYear: 1980,
-      isbn: '978-2222222222',
-      createdBy: 'ADMIN',
-      createdAt: new Date('2024-01-04')
-    },
-    {
-      id: '5',
-      title: '반지의 제왕',
-      author: 'J.R.R. 톨킨',
-      genre: '판타지',
-      description: '중간계를 구하기 위한 장대한 여정',
-      coverImage: 'https://images.unsplash.com/photo-1518373714866-3f1478910cc0?w=400',
-      publishedYear: 1954,
-      isbn: '978-3333333333',
-      createdBy: 'KT',
-      createdAt: new Date('2024-01-05')
-    },
-    {
-      id: '6',
-      title: '오만과 편견',
-      author: '제인 오스틴',
-      genre: '로맨스',
-      description: '계급과 편견을 넘어선 사랑 이야기',
-      coverImage: 'https://images.unsplash.com/photo-1474932430478-367dbb6832c1?w=400',
-      publishedYear: 1813,
-      isbn: '978-4444444444',
-      createdBy: 'ADMIN',
-      createdAt: new Date('2024-01-06')
-    },
-    {
-      id: '7',
-      title: '호밀밭의 파수꾼',
-      author: 'J.D. 샐린저',
-      genre: '소설',
-      description: '청소년의 방황과 성장을 그린 현대 고전',
-      coverImage: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=400',
-      publishedYear: 1951,
-      isbn: '978-5555555555',
-      createdBy: 'KT',
-      createdAt: new Date('2024-01-07')
-    },
-    {
-      id: '8',
-      title: '셜록 홈즈의 모험',
-      author: '아서 코난 도일',
-      genre: '미스터리',
-      description: '세계 최고의 탐정 셜록 홈즈의 사건들',
-      coverImage: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400',
-      publishedYear: 1892,
-      isbn: '978-6666666666',
-      createdBy: 'ADMIN',
-      createdAt: new Date('2024-01-08')
-    },
-    {
-      id: '9',
-      title: '총, 균, 쇠',
-      author: '재레드 다이아몬드',
-      genre: '역사',
-      description: '인류 문명의 발전 과정을 분석한 역작',
-      coverImage: 'https://images.unsplash.com/photo-1461360370896-922624d12aa1?w=400',
-      publishedYear: 1997,
-      isbn: '978-7777777777',
-      createdBy: 'KT',
-      createdAt: new Date('2024-01-09')
-    },
-    {
-      id: '10',
-      title: '아침의 피크닉',
-      author: '온다 리쿠',
-      genre: '소설',
-      description: '고교생들의 24시간 보행 대회를 그린 청춘 소설',
-      coverImage: 'https://images.unsplash.com/photo-1476275466078-4007374efbbe?w=400',
-      publishedYear: 2004,
-      isbn: '978-8888888888',
-      createdBy: 'ADMIN',
-      createdAt: new Date('2024-01-10')
-    },
-    {
-      id: '11',
-      title: '데미안',
-      author: '헤르만 헤세',
-      genre: '소설',
-      description: '한 청년의 정신적 각성과 성장',
-      coverImage: 'https://images.unsplash.com/photo-1506880018603-83d5b814b5a6?w=400',
-      publishedYear: 1919,
-      isbn: '978-9999999999',
-      createdBy: 'KT',
-      createdAt: new Date('2024-01-11')
-    },
-    {
-      id: '12',
-      title: '파운데이션',
-      author: '아이작 아시모프',
-      genre: 'SF',
-      description: '은하 제국의 흥망성쇠를 다룬 SF 대작',
-      coverImage: 'https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=400',
-      publishedYear: 1951,
-      isbn: '978-1010101010',
-      createdBy: 'ADMIN',
-      createdAt: new Date('2024-01-12')
-    },
-    {
-      id: '13',
-      title: '나미야 잡화점의 기적',
-      author: '히가시노 게이고',
-      genre: '미스터리',
-      description: '시간을 넘나드는 고민 상담 편지',
-      coverImage: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400',
-      publishedYear: 2012,
-      isbn: '978-1111222222',
-      createdBy: 'KT',
-      createdAt: new Date('2024-01-13')
-    },
-    {
-      id: '14',
-      title: '어린 왕자',
-      author: '생텍쥐페리',
-      genre: '소설',
-      description: '어른들을 위한 동화',
-      coverImage: 'https://images.unsplash.com/photo-1529070538774-1843cb3265df?w=400',
-      publishedYear: 1943,
-      isbn: '978-1212121212',
-      createdBy: 'ADMIN',
-      createdAt: new Date('2024-01-14')
-    },
-    {
-      id: '15',
-      title: '사피엔스',
-      author: '유발 하라리',
-      genre: '역사',
-      description: '인류의 역사와 미래에 대한 통찰',
-      coverImage: 'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?w=400',
-      publishedYear: 2011,
-      isbn: '978-1313131313',
-      createdBy: 'KT',
-      createdAt: new Date('2024-01-15')
-    },
-    {
-      id: '16',
-      title: '이방인',
-      author: '알베르 카뮈',
-      genre: '소설',
-      description: '부조리한 세계 속 인간의 실존',
-      coverImage: 'https://images.unsplash.com/photo-1516979187457-637abb4f9353?w=400',
-      publishedYear: 1942,
-      isbn: '978-1414141414',
-      createdBy: 'ADMIN',
-      createdAt: new Date('2024-01-16')
-    },
-    {
-      id: '17',
-      title: '아몬드',
-      author: '손원평',
-      genre: '소설',
-      description: '감정을 느끼지 못하는 소년의 성장 이야기',
-      coverImage: 'https://images.unsplash.com/photo-1532012197267-da84d127e765?w=400',
-      publishedYear: 2017,
-      isbn: '978-1515151515',
-      createdBy: 'KT',
-      createdAt: new Date('2024-01-17')
-    },
-    {
-      id: '18',
-      title: '연금술사',
-      author: '파울로 코엘료',
-      genre: '자기계발',
-      description: '자신의 운명을 찾아가는 소년의 여행',
-      coverImage: 'https://images.unsplash.com/photo-1499951360447-b19be8fe80f5?w=400',
-      publishedYear: 1988,
-      isbn: '978-1616161616',
-      createdBy: 'ADMIN',
-      createdAt: new Date('2024-01-18')
-    },
-    {
-      id: '19',
-      title: '82년생 김지영',
-      author: '조남주',
-      genre: '소설',
-      description: '평범한 한국 여성의 삶을 그린 소설',
-      coverImage: 'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=400',
-      publishedYear: 2016,
-      isbn: '978-1717171717',
-      createdBy: 'KT',
-      createdAt: new Date('2024-01-19')
-    },
-    {
-      id: '20',
-      title: '멋진 신세계',
-      author: '올더스 헉슬리',
-      genre: 'SF',
-      description: '완벽하게 통제된 미래 사회의 디스토피아',
-      coverImage: 'https://images.unsplash.com/photo-1510172951991-856a654063f9?w=400',
-      publishedYear: 1932,
-      isbn: '978-1818181818',
-      createdBy: 'ADMIN',
-      createdAt: new Date('2024-01-20')
-    },
-    {
-      id: '21',
-      title: '백년의 고독',
-      author: '가브리엘 가르시아 마르케스',
-      genre: '소설',
-      description: '부엔디아 가문의 백년 역사',
-      coverImage: 'https://images.unsplash.com/photo-1485988412941-77a35537dae4?w=400',
-      publishedYear: 1967,
-      isbn: '978-1919191919',
-      createdBy: 'KT',
-      createdAt: new Date('2024-01-21')
-    },
-    {
-      id: '22',
-      title: '해변의 카프카',
-      author: '무라카미 하루키',
-      genre: '소설',
-      description: '현실과 환상이 교차하는 청소년의 여정',
-      coverImage: 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=400',
-      publishedYear: 2002,
-      isbn: '978-2020202020',
-      createdBy: 'ADMIN',
-      createdAt: new Date('2024-01-22')
-    },
-    {
-      id: '23',
-      title: '도둑맞은 집중력',
-      author: '요한 하리',
-      genre: '자기계발',
-      description: '현대인의 집중력 위기와 해결책',
-      coverImage: 'https://images.unsplash.com/photo-1501504905252-473c47e087f8?w=400',
-      publishedYear: 2022,
-      isbn: '978-2121212121',
-      createdBy: 'KT',
-      createdAt: new Date('2024-01-23')
-    },
-    {
-      id: '24',
-      title: '숨결이 바람 될 때',
-      author: '폴 칼라니티',
-      genre: '에세이',
-      description: '죽음을 앞둔 의사의 성찰',
-      coverImage: 'https://images.unsplash.com/photo-1519791883288-dc8bd696e667?w=400',
-      publishedYear: 2016,
-      isbn: '978-2222232323',
-      createdBy: 'ADMIN',
-      createdAt: new Date('2024-01-24')
-    }
-  ]);
+  
+  // Initialize loans from localStorage or use empty array
+  // const [loans, setLoans] = useState<Loan[]>(() => {
+  //   const savedLoans = localStorage.getItem('loans');
+  //   if (savedLoans) {
+  //     try {
+  //       const parsed = JSON.parse(savedLoans);
+  //       return parsed.map((loan: any) => ({
+  //         ...loan,
+  //         loanDate: new Date(loan.loanDate),
+  //         dueDate: new Date(loan.dueDate),
+  //         returnDate: loan.returnDate ? new Date(loan.returnDate) : undefined
+  //       }));
+  //     } catch (e) {
+  //       console.error('Error parsing saved loans:', e);
+  //     }
+  //   }
+  //   return [];
+  // });
+
+  const [loans, setLoans] = useState<Loan[]>([]);
+
+  useEffect(() => {
+     const fetchLoans = async () => {
+       try {
+          const res = await fetch("http://localhost:8080/api/loans");
+          const data = await res.json();
+          setLoans(data);
+       } catch (error) {
+         console.error("Failed to fetch loans:", error);
+       }
+     };
+
+     fetchLoans();
+  }, []);
+
+
+
+
+
+    // Initialize books from localStorage or use default data
+  const [books, setBooks] = useState<Book[]>([]);
+
+    const fetchBooks = async () => {
+        try {
+            const res = await fetch("http://localhost:8080/api/book");
+            const data = await res.json();
+            setBooks(data);
+        } catch (error) {
+            console.error("Failed to fetch books:", error);
+        }
+    };
+
+     useEffect(() => {
+        fetchBooks();
+        }, []);
+    
+    // Default initial data - Load from initialBooks
+  //   return initialBooks.map(book => ({
+  //     ...book,
+  //     ratings: [],
+  //     reviews: []
+  //   }));
+  // });
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingBook, setEditingBook] = useState<Book | null>(null);
@@ -351,8 +174,8 @@ export default function App() {
   const [selectedBookIds, setSelectedBookIds] = useState<string[]>([]);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectionType, setSelectionType] = useState<'edit' | 'delete' | null>(null);
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isMyPageOpen, setIsMyPageOpen] = useState(false);
+  const [isInventoryOpen, setIsInventoryOpen] = useState(false);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   
   // History
@@ -362,13 +185,29 @@ export default function App() {
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGenre, setSelectedGenre] = useState<string>('전체');
-  const [sortBy, setSortBy] = useState<'title' | 'year' | 'author'>('title');
-  
+  // const [sortBy, setSortBy] = useState<'title' | 'year' | 'author'>('title');
+  const [sortBy, setSortBy] = useState<'title' | 'year'>('title');
+
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10; // 2 rows x 5 columns
 
   const isAdmin = currentUser?.role === 'admin';
+
+  // Save books to localStorage whenever they change
+  // useEffect(() => {
+  //   localStorage.setItem('books', JSON.stringify(books));
+  // }, [books]);
+
+  // Save loans to localStorage whenever they change
+  // useEffect(() => {
+  //   localStorage.setItem('loans', JSON.stringify(loans));
+  // }, [loans]);
+
+  // Save users to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('users', JSON.stringify(users));
+  }, [users]);
 
   const handleLogin = (user: User) => {
     setCurrentUser(user);
@@ -389,19 +228,30 @@ export default function App() {
     }
   };
 
-  const handleAddBook = (book: Omit<Book, 'id' | 'createdBy' | 'createdAt'>) => {
-    if (!currentUser) return;
-    
-    const newBook: Book = {
-      ...book,
-      id: Date.now().toString(),
-      createdBy: currentUser.id,
-      createdAt: new Date()
-    };
-    setBooks([...books, newBook]);
-    setIsDialogOpen(false);
+//삭제?
+//   const handleAddBook = (book: Omit<Book, 'id' | 'createdBy' | 'createdAt'>) => {
+//     if (!currentUser) return;
+//
+//     const newBook: Book = {
+//       ...book,
+//       id: Date.now().toString(),
+//       createdBy: currentUser.id,
+//       createdAt: new Date(),
+//       ratings: [],
+//       reviews: [],
+//       stock: 0
+//     };
+//     setBooks([...books, newBook]);
+//     setIsDialogOpen(false);
+//   };
+
+  const handleAddBook = (savedBook: Book) => {
+     setBooks(prev => [...prev, savedBook]);
+     setIsDialogOpen(false);
   };
 
+
+//삭제?
   const handleEditBook = (book: Book) => {
     const oldBook = books.find(b => b.id === book.id);
     if (oldBook) {
@@ -411,9 +261,9 @@ export default function App() {
       if (oldBook.title !== book.title) {
         changes.push({ field: '제목', oldValue: oldBook.title, newValue: book.title });
       }
-      if (oldBook.author !== book.author) {
-        changes.push({ field: '저자', oldValue: oldBook.author, newValue: book.author });
-      }
+      // if (oldBook.author !== book.author) {
+      //   changes.push({ field: '저자', oldValue: oldBook.author, newValue: book.author });
+      // }
       if (oldBook.genre !== book.genre) {
         changes.push({ field: '장르', oldValue: oldBook.genre, newValue: book.genre });
       }
@@ -447,21 +297,14 @@ export default function App() {
     setIsSelectionMode(false);
     setSelectionType(null);
   };
+//삭제?
+    const handleDeleteBook = (id: string) => {
+        // DB 삭제는 이미 MyPage에서 실행됨 → 여기선 로컬 state만 수정
+        setBooks(prev => prev.filter(b => b.id !== id));
+    };
 
-  const handleDeleteBook = (id: string) => {
-    const book = books.find(b => b.id === id);
-    if (book) {
-      const deleteRecord: DeleteRecord = {
-        id: Date.now().toString() + id,
-        book,
-        timestamp: new Date()
-      };
-      setDeleteHistory([deleteRecord, ...deleteHistory]);
-      setBooks(books.filter(b => b.id !== id));
-    }
-  };
 
-  const handleBulkDelete = () => {
+    const handleBulkDelete = () => {
     if (selectedBookIds.length === 0) return;
     if (confirm(`선택한 ${selectedBookIds.length}권의 도서를 삭제하시겠습니까?`)) {
       const deletedBooks = books.filter(b => selectedBookIds.includes(b.id));
@@ -548,7 +391,7 @@ export default function App() {
     .filter(book => {
       const matchesSearch = 
         book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        book.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        // book.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
         book.description.toLowerCase().includes(searchQuery.toLowerCase());
       
       const matchesGenre = selectedGenre === '전체' || book.genre === selectedGenre;
@@ -560,8 +403,8 @@ export default function App() {
         return a.title.localeCompare(b.title);
       } else if (sortBy === 'year') {
         return b.publishedYear - a.publishedYear;
-      } else {
-        return a.author.localeCompare(b.author);
+      // } else {
+      //   return a.author.localeCompare(b.author);
       }
     });
 
@@ -578,6 +421,131 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Check if user has overdue loans
+  const hasOverdueLoans = (userId: string) => {
+    const now = new Date();
+    return loans.some(loan => 
+      loan.userId === userId &&
+      !loan.returnDate &&
+      loan.dueDate < now
+    );
+  };
+
+  // Handle book loan
+  // const handleLoanBook = (bookId: string) => {
+  //   if (!currentUser) return;
+  //
+  //   // Check for overdue loans
+  //   if (hasOverdueLoans(currentUser.id)) {
+  //     alert('연체된 도서가 있어 대출이 불가능합니다. 먼저 반납해주세요.');
+  //     return;
+  //   }
+  //
+  //   const book = books.find(b => b.id === bookId);
+  //   if (!book) return;
+  //
+  //   // Check available stock
+  //   const currentLoans = loans.filter(l => l.bookId === bookId && !l.returnDate);
+  //   const availableStock = book.stock - currentLoans.length;
+  //
+  //   if (availableStock <= 0) {
+  //     alert('재고가 부족합니다.');
+  //     return;
+  //   }
+  //
+  //   // Create loan
+  //   const loanDate = new Date();
+  //   const dueDate = new Date();
+  //   dueDate.setDate(dueDate.getDate() + 7); // 7 days loan period
+  //
+  //   const newLoan: Loan = {
+  //     id: Date.now().toString(),
+  //     bookId,
+  //     userId: currentUser.id,
+  //     loanDate,
+  //     dueDate,
+  //     extended: false
+  //   };
+  //
+  //   const updatedLoans = [...loans, newLoan];
+  //   setLoans(updatedLoans);
+  //   localStorage.setItem('loans', JSON.stringify(updatedLoans));
+  //
+  //   alert('대출이 완료되었습니다.');
+  // };
+const handleLoanBook = async (bookId: string) => {
+    if (!currentUser) return;
+
+    try {
+        const res = await fetch("http://localhost:8080/api/loans", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                bookId,
+                userId: currentUser.id
+            }),
+        });
+
+        if (!res.ok) {
+            const msg = await res.text();
+            alert(msg || "대출 요청 실패");
+            return;
+        }
+
+        // 백엔드가 최신 loan 목록을 반환하는 경우
+        const updatedLoans = await res.json();
+        setLoans(updatedLoans);
+
+        alert("대출이 완료되었습니다.");
+    } catch (error) {
+        console.error("Loan failed:", error);
+        alert("대출 처리 중 오류가 발생했습니다.");
+    }
+};
+
+
+// Handle book return (loan cancellation)
+  const handleReturnBook = (loanId: string) => {
+    if (!currentUser) return;
+
+    const loan = loans.find(l => l.id === loanId);
+    if (!loan) return;
+
+    // Mark loan as returned
+    const updatedLoans = loans.map(l => 
+      l.id === loanId 
+        ? { ...l, returnDate: new Date() }
+        : l
+    );
+
+    setLoans(updatedLoans);
+    localStorage.setItem('loans', JSON.stringify(updatedLoans));
+
+    alert('대출이 취소되었습니다.');
+  };
+
+  // Handle loan extension
+  const handleExtendLoan = (loanId: string) => {
+    const loan = loans.find(l => l.id === loanId);
+    if (!loan) return;
+
+    if (loan.extended) {
+      alert('이미 연장된 대출입니다.');
+      return;
+    }
+
+    // Extend due date by 7 days
+    const newDueDate = new Date(loan.dueDate);
+    newDueDate.setDate(newDueDate.getDate() + 7);
+
+    setLoans(loans.map(l => 
+      l.id === loanId 
+        ? { ...l, dueDate: newDueDate, extended: true } 
+        : l
+    ));
+    alert('대출이 연장되었습니다.');
+  };
+
   // Show login screen if not logged in
   if (!currentUser) {
     return <LoginScreen onLogin={handleLogin} />;
@@ -586,46 +554,39 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* App Bar */}
-      <header className="bg-white shadow-sm sticky top-0 z-20">
-        <div className="px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 gap-4">
+      <header className="bg-white shadow-md sticky top-0 z-40 border-b border-gray-200">
+        <div className="mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between py-3 gap-4">
+            {/* Left Section - Logo and Menu */}
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                {isSidebarOpen ? (
-                  <X className="w-6 h-6 text-gray-700" />
-                ) : (
-                  <Menu className="w-6 h-6 text-gray-700" />
-                )}
+                <Menu className="w-6 h-6 text-gray-700" />
               </button>
-              <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center overflow-hidden border border-gray-200">
-                <img src={ktAivleLogo} alt="KT AIVLE SCHOOL" className="w-full h-full object-contain p-1" />
-              </div>
-              <div className="hidden md:block">
-                <h1 className="text-gray-900">도서 관리 시스템</h1>
-                <p className="text-sm text-gray-500">
-                  AI 표지 자동 생성 • {isAdmin ? '관리자' : '일반 회원'} ({currentUser.id})
-                </p>
+
+              <div className="flex items-center gap-2">
+                <img src={ktAivleLogo} alt="KT Aivle School Logo" className="h-8" />
+                <h1 className="text-gray-900 whitespace-nowrap">AI 도서 관리</h1>
               </div>
             </div>
 
-            {/* Central Search */}
-            <div className="flex-1 max-w-xl">
+            {/* Center Section - Search */}
+            <div className="flex-1 max-w-2xl mx-4">
               <div className="relative">
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="도서 검색 (제목, 저자, 내용)"
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 />
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded transition-colors"
                   >
                     <X className="w-4 h-4 text-gray-400" />
                   </button>
@@ -633,7 +594,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* Action Buttons */}
+            {/* Right Section - Action Buttons */}
             <div className="flex items-center gap-2">
               {isSelectionMode ? (
                 <>
@@ -672,12 +633,12 @@ export default function App() {
                   {isAdmin && (
                     <>
                       <button
-                        onClick={() => setIsHistoryOpen(true)}
+                        onClick={() => setIsInventoryOpen(true)}
                         className="inline-flex items-center gap-2 px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-sm"
-                        title="변경 이력"
+                        title="도서 현황"
                       >
-                        <History className="w-4 h-4" />
-                        <span className="hidden sm:inline">이력</span>
+                        <Package className="w-4 h-4" />
+                        <span className="hidden lg:inline">도서 현황</span>
                       </button>
                       <button
                         onClick={() => enterSelectionMode('edit')}
@@ -685,7 +646,7 @@ export default function App() {
                         title="편집"
                       >
                         <Edit2 className="w-4 h-4" />
-                        <span className="hidden sm:inline">편집</span>
+                        <span className="hidden lg:inline">편집</span>
                       </button>
                       <button
                         onClick={() => enterSelectionMode('delete')}
@@ -693,7 +654,7 @@ export default function App() {
                         title="삭제"
                       >
                         <Trash2 className="w-4 h-4" />
-                        <span className="hidden sm:inline">삭제</span>
+                        <span className="hidden lg:inline">삭제</span>
                       </button>
                     </>
                   )}
@@ -702,7 +663,7 @@ export default function App() {
                     className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
                   >
                     <Plus className="w-5 h-5" />
-                    <span className="hidden sm:inline">도서 추가</span>
+                    <span className="hidden lg:inline">도서 추가</span>
                   </button>
                   <button
                     onClick={() => setIsMyPageOpen(true)}
@@ -710,7 +671,7 @@ export default function App() {
                     title="마이페이지"
                   >
                     <UserIcon className="w-4 h-4" />
-                    <span className="hidden sm:inline">마이페이지</span>
+                    <span className="hidden lg:inline">마이페이지</span>
                   </button>
                   <button
                     onClick={handleLogout}
@@ -718,7 +679,7 @@ export default function App() {
                     title="로그아웃"
                   >
                     <LogOut className="w-4 h-4" />
-                    <span className="hidden sm:inline">로그아웃</span>
+                    <span className="hidden lg:inline">로그아웃</span>
                   </button>
                 </>
               )}
@@ -727,21 +688,23 @@ export default function App() {
         </div>
       </header>
 
-      <div className="flex">
-        {/* Sidebar */}
-        <Sidebar
-          books={books}
-          isOpen={isSidebarOpen}
-          selectedGenre={selectedGenre}
-          sortBy={sortBy}
-          onGenreChange={setSelectedGenre}
-          onSortChange={setSortBy}
-          onClose={() => setIsSidebarOpen(false)}
-        />
+      {/* Sidebar - Overlay when opened */}
+      <Sidebar
+        books={books}
+        loans={loans}
+        currentUser={currentUser}
+        isOpen={isSidebarOpen}
+        selectedGenre={selectedGenre}
+        sortBy={sortBy}
+        onGenreChange={setSelectedGenre}
+        onSortChange={setSortBy}
+        onClose={() => setIsSidebarOpen(false)}
+      />
 
-        {/* Main Content */}
-        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-8">
-          <div className="mb-6 flex items-center justify-between">
+      {/* Main Content */}
+      <main className={`px-4 sm:px-6 lg:px-8 py-8 transition-all duration-300 ${isSidebarOpen ? 'ml-80' : 'ml-0'}`}>
+        <div className="mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-4">
             <div>
               <h2 className="text-gray-700 mb-1">
                 {selectedGenre === '전체' ? '전체 도서' : `${selectedGenre} 도서`}
@@ -751,62 +714,78 @@ export default function App() {
                 {isSelectionMode && selectedBookIds.length > 0 && ` (${selectedBookIds.length}권 선택됨)`}
               </p>
             </div>
-            {isSelectionMode && getCurrentPageBooks().length > 0 && (
-              <button
-                onClick={handleSelectAll}
-                className="text-sm text-blue-600 hover:text-blue-700 transition-colors"
+            
+            {/* Sort Options */}
+            <div className="flex items-center gap-2 ml-4">
+              <span className="text-sm text-gray-600">정렬:</span>
+              <select
+                value={sortBy}
+                // onChange={(e) => setSortBy(e.target.value as 'title' | 'year' | 'author')}
+                onChange={(e) => setSortBy(e.target.value as 'title' | 'year')}
+                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
               >
-                {getCurrentPageBooks().every(b => selectedBookIds.includes(b.id)) ? '전체 해제' : '전체 선택'}
-              </button>
-            )}
-          </div>
-        
-          <BookList 
-            books={getCurrentPageBooks()} 
-            selectedBookIds={selectedBookIds}
-            onSelectBook={handleSelectBook}
-            onBookClick={handleBookClick}
-            isSelectionMode={isSelectionMode}
-          />
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="mt-8 flex items-center justify-center gap-2">
-              <button
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                이전
-              </button>
-              
-              <div className="flex gap-1">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                  <button
-                    key={page}
-                    onClick={() => handlePageChange(page)}
-                    className={`px-4 py-2 rounded-lg transition-colors ${
-                      currentPage === page
-                        ? 'bg-blue-600 text-white'
-                        : 'border border-gray-300 hover:bg-gray-50'
-                    }`}
-                  >
-                    {page}
-                  </button>
-                ))}
-              </div>
-
-              <button
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                다음
-              </button>
+                <option value="title">제목순</option>
+                <option value="year">최신순</option>
+                {/*<option value="author">저자명순</option>*/}
+              </select>
             </div>
+          </div>
+          {isSelectionMode && getCurrentPageBooks().length > 0 && (
+            <button
+              onClick={handleSelectAll}
+              className="text-sm text-blue-600 hover:text-blue-700 transition-colors"
+            >
+              {getCurrentPageBooks().every(b => selectedBookIds.includes(b.id)) ? '전체 해제' : '전체 선택'}
+            </button>
           )}
-        </main>
-      </div>
+        </div>
+        
+        <BookList 
+          books={getCurrentPageBooks()} 
+          loans={loans}
+          selectedBookIds={selectedBookIds}
+          onSelectBook={handleSelectBook}
+          onBookClick={handleBookClick}
+          isSelectionMode={isSelectionMode}
+        />
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="mt-8 flex items-center justify-center gap-2">
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              이전
+            </button>
+            
+            <div className="flex gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                <button
+                  key={page}
+                  onClick={() => handlePageChange(page)}
+                  className={`px-4 py-2 rounded-lg transition-colors ${
+                    currentPage === page
+                      ? 'bg-blue-600 text-white'
+                      : 'border border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              다음
+            </button>
+          </div>
+        )}
+      </main>
 
       {/* Add/Edit Dialog */}
       {isDialogOpen && (
@@ -820,24 +799,13 @@ export default function App() {
         />
       )}
 
-      {/* History Dialog */}
-      {isHistoryOpen && (
-        <HistoryDialog
-          editHistory={editHistory}
-          deleteHistory={deleteHistory}
-          onClose={() => setIsHistoryOpen(false)}
-          onRestore={handleRestoreBook}
-        />
-      )}
-
       {/* My Page */}
       {isMyPageOpen && currentUser && (
         <MyPage
           user={currentUser}
-          books={isAdmin ? books : books.filter(b => {
-            console.log('Book:', b.title, 'createdBy:', b.createdBy, 'currentUser:', currentUser.id, 'match:', b.createdBy === currentUser.id);
-            return b.createdBy === currentUser.id;
-          })}
+          books={isAdmin ? books : books.filter(b => b.createdBy === currentUser.id)}
+          loans={loans}
+          allBooks={books}
           onClose={() => setIsMyPageOpen(false)}
           onPasswordChange={handlePasswordChange}
           onEditBook={(book) => {
@@ -846,14 +814,39 @@ export default function App() {
             setIsMyPageOpen(false);
           }}
           onDeleteBook={handleDeleteBook}
+          onReturnBook={handleReturnBook}
+          onExtendLoan={handleExtendLoan}
         />
       )}
 
       {/* Book Detail Dialog */}
-      {selectedBook && (
+      {selectedBook && currentUser && (
         <BookDetailDialog
           book={selectedBook}
+          currentUser={currentUser}
+          loans={loans}
           onClose={() => setSelectedBook(null)}
+          onUpdateBook={(updatedBook) => {
+            setBooks(books.map(b => b.id === updatedBook.id ? updatedBook : b));
+            setSelectedBook(updatedBook);
+          }}
+          onLoanBook={handleLoanBook}
+          onReturnBook={handleReturnBook}
+          hasOverdueLoans={hasOverdueLoans(currentUser.id)}
+        />
+      )}
+
+      {/* Book Inventory Dialog */}
+      {isInventoryOpen && currentUser && isAdmin && (
+        <BookInventoryDialog
+          books={books}
+          loans={loans}
+          onClose={() => setIsInventoryOpen(false)}
+          onEditBook={(book) => {
+            setEditingBook(book);
+            setIsDialogOpen(true);
+            setIsInventoryOpen(false);
+          }}
         />
       )}
     </div>

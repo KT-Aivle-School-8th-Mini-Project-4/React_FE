@@ -1,22 +1,48 @@
-import { useState } from 'react';
-import { User, Book } from '../App';
-import { X, Key, BookOpen, Edit2, Trash2, CheckCircle, AlertCircle } from 'lucide-react';
+import {useEffect, useState} from 'react';
+import { User, Book, Loan } from '../App';
+import { X, Key, BookOpen, Edit2, Trash2, CheckCircle, AlertCircle, Package, Calendar, RefreshCw } from 'lucide-react';
 
 interface MyPageProps {
   user: User;
-  books: Book[];
+  // books: Book[];
+  loans: Loan[];
+  allBooks: Book[];
   onClose: () => void;
   onPasswordChange: (newPassword: string) => void;
-  onEditBook: (book: Book) => void;
-  onDeleteBook: (id: string) => void;
+  // onEditBook: (book: Book) => void;
+  // onDeleteBook: (id: string) => void;
+  onReturnBook: (loanId: string) => void;
+  onExtendLoan: (loanId: string) => void;
 }
 
-export function MyPage({ user, books, onClose, onPasswordChange, onEditBook, onDeleteBook }: MyPageProps) {
+export function MyPage({ user, books, loans, allBooks, onClose, onPasswordChange, onEditBook, onDeleteBook, onReturnBook, onExtendLoan }: MyPageProps) {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState(false);
+//수정 부분
+  const [myBooks, setMyBooks] = useState<Book[]>([]);
+  const [loadingMyBooks, setLoadingMyBooks] = useState(true);
+
+  useEffect(() => {
+    const fetchMyBooks = async () => {
+      try {
+        const response = await fetch(`http://localhost:8080/api/book/user/${user.id}`);
+        if (!response.ok) throw new Error("내 도서 조회 실패");
+
+        const data = await response.json();
+        setMyBooks(data);
+      } catch (err) {
+        console.error("내 도서 불러오기 실패:", err);
+      } finally {
+        setLoadingMyBooks(false);
+      }
+    };
+
+    fetchMyBooks();
+  }, [user.id]);
+//
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +55,7 @@ export function MyPage({ user, books, onClose, onPasswordChange, onEditBook, onD
     }
 
     if (newPassword.length < 4) {
-      setPasswordError('새 비밀번호는 4자 이상이어야 합니다.');
+      setPasswordError('새 비밀번호는 4자 이상���야 합니다.');
       return;
     }
 
@@ -49,13 +75,37 @@ export function MyPage({ user, books, onClose, onPasswordChange, onEditBook, onD
     }, 3000);
   };
 
-  const handleDelete = (bookId: string, bookTitle: string) => {
-    if (confirm(`"${bookTitle}"을(를) 삭제하시겠습니까?`)) {
-      onDeleteBook(bookId);
-    }
-  };
+  // const handleDelete = (bookId: string, bookTitle: string) => {
+  //   if (confirm(`"${bookTitle}"을(를) 삭제하시겠습니까?`)) {
+  //     onDeleteBook(bookId);
+  //   }
+  // };
+    const handleDelete = async (bookId: string, bookTitle: string) => {
+        if (!confirm(`"${bookTitle}"을(를) 삭제하시겠습니까?`)) return;
 
-  const formatDate = (date: Date) => {
+        try {
+            const response = await fetch(`http://localhost:8080/api/book/${bookId}`, {
+                method: "DELETE",
+            });
+
+            if (!response.ok) {
+                alert("도서 삭제 실패");
+                return;
+            }
+
+            // 🔥 App.tsx의 books 상태 업데이트 요청
+            onDeleteBook(bookId);
+
+            alert("도서가 삭제되었습니다.");
+        } catch (err) {
+            console.error("삭제 중 오류:", err);
+            alert("서버 오류로 삭제 실패");
+        }
+    };
+
+
+
+    const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat('ko-KR', {
       year: 'numeric',
       month: 'long',
@@ -175,69 +225,279 @@ export function MyPage({ user, books, onClose, onPasswordChange, onEditBook, onD
               </form>
             </div>
 
-            {/* My Books Section */}
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <BookOpen className="w-5 h-5 text-indigo-600" />
-                <h3 className="text-gray-900">
-                  {user.role === 'admin' ? '전체 도서 관리' : '내가 등록한 도서'}
-                </h3>
-                <span className="px-2 py-1 bg-indigo-100 text-indigo-600 text-xs rounded-full">
-                  {books.length}권
-                </span>
-              </div>
-
-              {books.length === 0 ? (
-                <div className="text-center py-12 bg-gray-50 rounded-lg">
-                  <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                  <p className="text-gray-500">
-                    {user.role === 'admin' ? '등록된 도서가 없습니다' : '등록한 도서가 없습니다'}
-                  </p>
+            {/* My Books Section - Only for non-admin */}
+            {user.role !== 'admin' && (
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <BookOpen className="w-5 h-5 text-indigo-600" />
+                  <h3 className="text-gray-900">내가 등록한 도서</h3>
+                  <span className="px-2 py-1 bg-indigo-100 text-indigo-600 text-xs rounded-full">
+                    {books.length}권
+                  </span>
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  {books.map(book => (
-                    <div
-                      key={book.id}
-                      className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-indigo-300 transition-colors"
-                    >
-                      <img
-                        src={book.coverImage}
-                        alt={book.title}
-                        className="w-16 h-24 object-cover rounded shadow-sm"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-gray-900 mb-1 truncate">{book.title}</h4>
-                        <p className="text-sm text-gray-600 mb-2">{book.author}</p>
-                        <div className="flex items-center gap-3 text-xs text-gray-500 mb-3">
-                          <span className="px-2 py-1 bg-blue-100 text-blue-600 rounded">
-                            {book.genre}
-                          </span>
-                          <span>{book.publishedYear}년</span>
-                          <span>등록일: {formatDate(book.createdAt)}</span>
-                        </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => onEditBook(book)}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
-                          >
-                            <Edit2 className="w-3 h-3" />
-                            편집
-                          </button>
-                          <button
-                            onClick={() => handleDelete(book.id, book.title)}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                            삭제
-                          </button>
+
+                {books.length === 0 ? (
+                  <div className="text-center py-12 bg-gray-50 rounded-lg">
+                    <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                    <p className="text-gray-500">등록한 도서가 없습니다</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {books.map(book => (
+                      <div
+                        key={book.id}
+                        className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-indigo-300 transition-colors"
+                      >
+                        <img
+                          src={book.coverImage}
+                          alt={book.title}
+                          className="w-16 h-24 object-cover rounded shadow-sm"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-gray-900 mb-1 truncate">{book.title}</h4>
+                          <p className="text-sm text-gray-600 mb-2">{book.author}</p>
+                          <div className="flex items-center gap-3 text-xs text-gray-500 mb-3">
+                            <span className="px-2 py-1 bg-blue-100 text-blue-600 rounded">
+                              {book.genre}
+                            </span>
+                            <span>{book.publishedYear}년</span>
+                            <span>등록일: {formatDate(book.createdAt)}</span>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => onEditBook(book)}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
+                            >
+                              <Edit2 className="w-3 h-3" />
+                              편집
+                            </button>
+                            <button
+                              onClick={() => handleDelete(book.id, book.title)}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              삭제
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+              {/* My Books Section - Only for non-admin */}
+              {user.role !== 'admin' && (
+                  <div>
+                      <div className="flex items-center gap-2 mb-4">
+                          <BookOpen className="w-5 h-5 text-indigo-600" />
+                          <h3 className="text-gray-900">내가 등록한 도서</h3>
+                          <span className="px-2 py-1 bg-indigo-100 text-indigo-600 text-xs rounded-full">
+        {myBooks.length}권
+      </span>
+                      </div>
+
+                      {/* 로딩 상태 */}
+                      {loadingMyBooks && (
+                          <div className="text-center py-10 text-gray-500">
+                              불러오는 중...
+                          </div>
+                      )}
+
+                      {/* 도서 없음 */}
+                      {!loadingMyBooks && myBooks.length === 0 && (
+                          <div className="text-center py-12 bg-gray-50 rounded-lg">
+                              <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                              <p className="text-gray-500">등록한 도서가 없습니다</p>
+                          </div>
+                      )}
+
+                      {/* 도서 목록 */}
+                      {!loadingMyBooks && myBooks.length > 0 && (
+                          <div className="space-y-3">
+                              {myBooks.map(book => (
+                                  <div
+                                      key={book.id}
+                                      className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-indigo-300 transition-colors"
+                                  >
+                                      <img
+                                          src={book.coverImage}
+                                          alt={book.title}
+                                          className="w-16 h-24 object-cover rounded shadow-sm"
+                                      />
+                                      <div className="flex-1 min-w-0">
+                                          <h4 className="text-gray-900 mb-1 truncate">{book.title}</h4>
+                                          <p className="text-sm text-gray-600 mb-2">{book.author}</p>
+
+                                          <div className="flex items-center gap-3 text-xs text-gray-500 mb-3">
+                <span className="px-2 py-1 bg-blue-100 text-blue-600 rounded">
+                  {book.genre}
+                </span>
+                                              <span>{book.publishedYear}년</span>
+                                              <span>등록일: {formatDate(book.createdAt)}</span>
+                                          </div>
+
+                                          <div className="flex gap-2">
+                                              <button
+                                                  onClick={() => onEditBook(book)}
+                                                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
+                                              >
+                                                  <Edit2 className="w-3 h-3" />
+                                                  편집
+                                              </button>
+
+                                              <button
+                                                  onClick={async () => {
+                                                      if (!confirm(`"${book.title}"을(를) 삭제하시겠습니까?`)) return;
+
+                                                      const res = await fetch(`http://localhost:8080/api/book/${book.id}`, {
+                                                          method: "DELETE"
+                                                      });
+
+                                                      if (!res.ok) return alert("삭제 실패");
+
+                                                      // 🔥 삭제 성공 → 목록 새로고침
+                                                      setMyBooks(prev => prev.filter(b => b.id !== book.id));
+
+                                                      alert("삭제되었습니다.");
+                                                  }}
+                                                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors"
+                                              >
+                                                  <Trash2 className="w-3 h-3" />
+                                                  삭제
+                                              </button>
+                                          </div>
+                                      </div>
+                                  </div>
+                              ))}
+                          </div>
+                      )}
+                  </div>
               )}
-            </div>
+
+
+
+
+
+              {/* Loaned Books Section */}
+            {user.role !== 'admin' && (
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <Package className="w-5 h-5 text-indigo-600" />
+                  <h3 className="text-gray-900">대출 현황</h3>
+                  <span className="px-2 py-1 bg-indigo-100 text-indigo-600 text-xs rounded-full">
+                    {loans.filter(l => l.userId === user.id && !l.returnDate).length}권
+                  </span>
+                </div>
+
+                {loans.filter(l => l.userId === user.id && !l.returnDate).length === 0 ? (
+                  <div className="text-center py-12 bg-gray-50 rounded-lg">
+                    <Package className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                    <p className="text-gray-500">대출한 도서가 없습니다</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {loans
+                      .filter(l => l.userId === user.id && !l.returnDate)
+                      .map(loan => {
+                        const book = allBooks.find(b => b.id === loan.bookId);
+                        if (!book) return null;
+                        
+                        const now = new Date();
+                        const isOverdue = loan.dueDate < now;
+                        const daysRemaining = Math.ceil((loan.dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                        
+                        return (
+                          <div
+                            key={loan.id}
+                            className={`flex items-start gap-4 p-4 rounded-lg border-2 transition-colors ${
+                              isOverdue 
+                                ? 'bg-red-50 border-red-300' 
+                                : daysRemaining <= 2
+                                ? 'bg-yellow-50 border-yellow-300'
+                                : 'bg-gray-50 border-gray-200 hover:border-indigo-300'
+                            }`}
+                          >
+                            <img
+                              src={book.coverImage}
+                              alt={book.title}
+                              className="w-16 h-24 object-cover rounded shadow-sm"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-gray-900 mb-1 truncate">{book.title}</h4>
+                              <p className="text-sm text-gray-600 mb-2">{book.author}</p>
+                              
+                              <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 mb-3">
+                                <span className="px-2 py-1 bg-blue-100 text-blue-600 rounded">
+                                  {book.genre}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <Calendar className="w-3 h-3" />
+                                  대출일: {formatDate(loan.loanDate)}
+                                </span>
+                                <span className={`flex items-center gap-1 px-2 py-1 rounded ${
+                                  isOverdue 
+                                    ? 'bg-red-100 text-red-700' 
+                                    : daysRemaining <= 2
+                                    ? 'bg-yellow-100 text-yellow-700'
+                                    : 'bg-green-100 text-green-700'
+                                }`}>
+                                  <Calendar className="w-3 h-3" />
+                                  반납예정일: {formatDate(loan.dueDate)}
+                                  {isOverdue && ' (연체)'}
+                                  {!isOverdue && daysRemaining <= 2 && ` (${daysRemaining}일 남음)`}
+                                </span>
+                                {loan.extended && (
+                                  <span className="px-2 py-1 bg-purple-100 text-purple-600 rounded">
+                                    연장됨
+                                  </span>
+                                )}
+                              </div>
+                              
+                              {isOverdue && (
+                                <div className="mb-3 p-2 bg-red-100 border border-red-300 rounded text-xs text-red-700">
+                                  ⚠️ 이 도서는 연체되었습니다. 반납 시까지 대출이 제한됩니다.
+                                </div>
+                              )}
+                              
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => onReturnBook(loan.id)}
+                                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors"
+                                >
+                                  <CheckCircle className="w-3 h-3" />
+                                  반납
+                                </button>
+                                {!loan.extended && !isOverdue && (
+                                  <button
+                                    onClick={() => onExtendLoan(loan.id)}
+                                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
+                                  >
+                                    <RefreshCw className="w-3 h-3" />
+                                    연장 (7일)
+                                  </button>
+                                )}
+                                {loan.extended && (
+                                  <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-400 text-white text-sm rounded cursor-not-allowed">
+                                    <RefreshCw className="w-3 h-3" />
+                                    연장 완료
+                                  </span>
+                                )}
+                                {isOverdue && (
+                                  <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-400 text-white text-sm rounded cursor-not-allowed">
+                                    <RefreshCw className="w-3 h-3" />
+                                    연장 불가 (연체)
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

@@ -1,7 +1,7 @@
 
-  # Book Management System
+  # Book_Management_System
 
-  This is a code bundle for Book Management System. The original project is available at https://www.figma.com/design/3OvpAm7sDBs6StEqGj9nUG/Book-Management-System.
+  This is a code bundle for Book_Management_System. The original project is available at https://www.figma.com/design/3OvpAm7sDBs6StEqGj9nUG/Book_Management_System.
 
   ## Running the code
 

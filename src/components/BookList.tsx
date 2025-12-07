@@ -1,15 +1,16 @@
-import { Book } from '../App';
+import { Book, Loan } from '../App';
 import { BookCard } from './BookCard';
 
 interface BookListProps {
   books: Book[];
+  loans: Loan[];
   selectedBookIds: string[];
   onSelectBook: (id: string) => void;
   onBookClick: (book: Book) => void;
   isSelectionMode: boolean;
 }
 
-export function BookList({ books, selectedBookIds, onSelectBook, onBookClick, isSelectionMode }: BookListProps) {
+export function BookList({ books, loans, selectedBookIds, onSelectBook, onBookClick, isSelectionMode }: BookListProps) {
   if (books.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow-sm p-12 text-center">
@@ -30,6 +31,7 @@ export function BookList({ books, selectedBookIds, onSelectBook, onBookClick, is
         <BookCard
           key={book.id}
           book={book}
+          loans={loans}
           isSelected={selectedBookIds.includes(book.id)}
           onSelect={onSelectBook}
           onBookClick={onBookClick}

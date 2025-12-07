@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { X, Sparkles, Wand2, RefreshCw, Palette, Image as ImageIcon } from 'lucide-react';
-import { unsplash_tool } from '../tools/unsplash';
 
 interface AIImageGeneratorProps {
   bookTitle: string;
@@ -24,69 +23,152 @@ export function AIImageGenerator({ bookTitle, bookGenre, onClose, onGenerate }: 
     { id: 'modern' as const, label: '모던', icon: <Palette className="w-4 h-4" />, description: '세련되고 현대적인 감각' }
   ];
 
-  const handleGenerate = async () => {
-    setIsGenerating(true);
-    
-    try {
-      let baseQuery = prompt || `${bookGenre} book cover ${bookTitle}`;
-      
-      // Style-based query modifications
-      let queries: string[] = [];
-      
-      if (activeStyle === 'auto') {
-        // Generate 6 different variations
-        queries = [
-          `${baseQuery} professional`,
-          `${bookGenre} ${activeStyle} cover design`,
-          `${bookGenre} book aesthetic`,
-          `${bookGenre} literature theme`,
-          `${bookGenre} artistic book`,
-          `${bookGenre} modern cover`
-        ];
-      } else {
-        // Generate 6 variations with the selected style
-        queries = [
-          `${baseQuery} ${activeStyle}`,
-          `${bookGenre} ${activeStyle} book`,
-          `${activeStyle} ${bookGenre} design`,
-          `${activeStyle} literature cover`,
-          `${bookGenre} ${activeStyle} aesthetic`,
-          `${activeStyle} book cover theme`
-        ];
-      }
+  // const handleGenerate = async () => {
+  //   setIsGenerating(true);
+  //   setGeneratedImages([]);
+  //   setSelectedImage(null);
+  //
+  //   try {
+  //     const customKeywords = prompt.trim();
+  //     let queries: string[] = [];
+  //
+  //     // Create base search terms - prioritize custom keywords, then use genre
+  //     const genre = bookGenre.toLowerCase();
+  //
+  //     if (activeStyle === 'auto') {
+  //       // Generate 6 variations based on genre or custom keywords
+  //       if (customKeywords) {
+  //         queries = [
+  //           `${customKeywords} book`,
+  //           `${customKeywords} ${genre}`,
+  //           `${customKeywords} art`,
+  //           `${customKeywords} mood`,
+  //           `${customKeywords} aesthetic`,
+  //           `${customKeywords} atmosphere`
+  //         ];
+  //       } else {
+  //         queries = [
+  //           `${genre} book cover`,
+  //           `${genre} literature`,
+  //           `${genre} reading`,
+  //           `${genre} mood`,
+  //           `${genre} aesthetic`,
+  //           `${genre} atmosphere`
+  //         ];
+  //       }
+  //     } else {
+  //       // Generate 6 variations with selected style
+  //       if (customKeywords) {
+  //         queries = [
+  //           `${activeStyle} ${customKeywords}`,
+  //           `${activeStyle} ${customKeywords} book`,
+  //           `${activeStyle} ${customKeywords} art`,
+  //           `${activeStyle} ${customKeywords} mood`,
+  //           `${activeStyle} ${customKeywords} design`,
+  //           `${activeStyle} ${customKeywords} aesthetic`
+  //         ];
+  //       } else {
+  //         queries = [
+  //           `${activeStyle} ${genre} book`,
+  //           `${activeStyle} ${genre}`,
+  //           `${activeStyle} ${genre} art`,
+  //           `${activeStyle} ${genre} mood`,
+  //           `${activeStyle} ${genre} design`,
+  //           `${activeStyle} ${genre} aesthetic`
+  //         ];
+  //       }
+  //     }
+  //
+  //     // Generate images using Picsum Photos with different seeds based on queries
+  //     const images: string[] = [];
+  //
+  //     for (let i = 0; i < queries.length; i++) {
+  //       try {
+  //         const width = 400;
+  //         const height = 600;
+  //         // Create a unique seed from the query and index
+  //         const seed = Math.abs(queries[i].split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) + i * 1000;
+  //         const imageUrl = `https://picsum.photos/seed/${seed}/400/600`;
+  //         images.push(imageUrl);
+  //
+  //         // Small delay between requests
+  //         if (i < queries.length - 1) {
+  //           await new Promise(resolve => setTimeout(resolve, 100));
+  //         }
+  //       } catch (error) {
+  //         console.error(`Error generating image for query "${queries[i]}":`, error);
+  //       }
+  //     }
+  //
+  //     if (images.length === 0) {
+  //       alert('이미지 생성에 실패했습니다. 다시 시도해주세요.');
+  //     } else {
+  //       setGeneratedImages(images);
+  //     }
+  //   } catch (error) {
+  //     console.error('Error generating images:', error);
+  //     alert('이미지 생성 중 오류가 발생했습니다.');
+  //   } finally {
+  //     setIsGenerating(false);
+  //   }
+  // };
 
-      const images: string[] = [];
-      for (const query of queries) {
+    const handleGenerate = async () => {
+        setIsGenerating(true);
+        setGeneratedImages([]);
+        setSelectedImage(null);
+
         try {
-          const imageUrl = await unsplash_tool(query);
-          if (imageUrl) {
-            images.push(imageUrl);
-          }
+            const response = await fetch("http://localhost:8080/api/book/cover/generate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    title: bookTitle,
+                    genre: bookGenre,
+                    prompt: prompt.trim(),
+                    style: activeStyle
+                })
+            });
+
+            if (!response.ok) {
+                alert("이미지 생성 실패");
+                return;
+            }
+
+            const data = await response.json();
+            setGeneratedImages(data.images); // 백엔드 생성 이미지
         } catch (error) {
-          console.error(`Error generating image for query "${query}":`, error);
+            alert("이미지 생성 중 오류 발생");
+        } finally {
+            setIsGenerating(false);
         }
-      }
+    };
 
-      if (images.length === 0) {
-        alert('이미지 생성에 실패했습니다. 다시 시도해주세요.');
-      } else {
-        setGeneratedImages(images);
-      }
-    } catch (error) {
-      console.error('Error generating images:', error);
-      alert('이미지 생성 중 오류가 발생했습니다.');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
 
-  const handleUseImage = () => {
-    if (selectedImage) {
-      onGenerate(selectedImage);
-    }
-  };
+    const handleUseImage = async () => {
+        if (!selectedImage) return;
 
-  return (
+        try {
+            const response = await fetch(`http://localhost:8080/api/book/${bookId}/cover`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ coverImage: selectedImage })
+            });
+
+            if (!response.ok) {
+                alert("표지 저장 실패");
+                return;
+            }
+
+            onGenerate(selectedImage); // 상위 컴포넌트에 반영
+            onClose();
+        } catch (error) {
+            alert("표지 저장 중 오류 발생");
+        }
+    };
+
+
+    return (
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60] p-4">
       <div className="bg-white rounded-lg shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
@@ -125,6 +207,49 @@ export function AIImageGenerator({ bookTitle, bookGenre, onClose, onGenerate }: 
             </div>
           </div>
 
+          {/* Prompt Input */}
+          <div className="mb-6">
+            <label className="block text-sm text-gray-700 mb-2">
+              이미지 생성 키워드 {!prompt.trim() && <span className="text-gray-500">(미입력 시 장르 기반으로 생성됩니다)</span>}
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                placeholder={`예: 달빛, 판타지, 신비로운, 어두운 등`}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !isGenerating) {
+                    handleGenerate();
+                  }
+                }}
+              />
+              <button
+                onClick={handleGenerate}
+                disabled={isGenerating}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+              >
+                {isGenerating ? (
+                  <>
+                    <RefreshCw className="w-5 h-5 animate-spin" />
+                    생성 중...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-5 h-5" />
+                    생성
+                  </>
+                )}
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              {prompt.trim() 
+                ? `* "${prompt}" 키워드로 6가지 이미지를 생성합니다` 
+                : `* "${bookGenre}" 장르를 바탕으로 6가지 이미지를 생성합니다`}
+            </p>
+          </div>
+
           {/* Style Selection */}
           <div className="mb-6">
             <label className="block text-sm text-gray-700 mb-3">
@@ -161,42 +286,6 @@ export function AIImageGenerator({ bookTitle, bookGenre, onClose, onGenerate }: 
             </div>
           </div>
 
-          {/* Prompt Input */}
-          <div className="mb-6">
-            <label className="block text-sm text-gray-700 mb-2">
-              추가 키워드 (선택사항)
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                placeholder={`예: 달빛, 판타지, 신비로운, 어두운 등`}
-              />
-              <button
-                onClick={handleGenerate}
-                disabled={isGenerating}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-              >
-                {isGenerating ? (
-                  <>
-                    <RefreshCw className="w-5 h-5 animate-spin" />
-                    생성 중...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-5 h-5" />
-                    생성
-                  </>
-                )}
-              </button>
-            </div>
-            <p className="text-xs text-gray-500 mt-2">
-              * 선택한 스타일과 장르를 바탕으로 6가지 이미지를 생성합니다
-            </p>
-          </div>
-
           {/* Generated Images */}
           {generatedImages.length > 0 && (
             <div>
@@ -219,6 +308,7 @@ export function AIImageGenerator({ bookTitle, bookGenre, onClose, onGenerate }: 
                       src={imageUrl}
                       alt={`생성된 이미지 ${index + 1}`}
                       className="w-full h-full object-cover"
+                      loading="lazy"
                     />
                     {selectedImage === imageUrl && (
                       <div className="absolute inset-0 bg-purple-600 bg-opacity-20 flex items-center justify-center backdrop-blur-[1px]">
@@ -251,8 +341,19 @@ export function AIImageGenerator({ bookTitle, bookGenre, onClose, onGenerate }: 
               </p>
               <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
                 <Palette className="w-4 h-4" />
-                <span>5가지 스타일 • 6개 이미지</span>
+                <span>5가지 타일 • 6개 이미지</span>
               </div>
+            </div>
+          )}
+
+          {/* Loading State */}
+          {isGenerating && (
+            <div className="text-center py-12">
+              <RefreshCw className="w-12 h-12 text-purple-600 animate-spin mx-auto mb-4" />
+              <h3 className="text-gray-900 mb-2">이미지 생성 중...</h3>
+              <p className="text-gray-500">
+                잠시만 기다려주세요. 6개의 이미지를 생성하고 있습니다.
+              </p>
             </div>
           )}
 
@@ -267,7 +368,8 @@ export function AIImageGenerator({ bookTitle, bookGenre, onClose, onGenerate }: 
                 <ul className="space-y-1 text-blue-800">
                   <li>• 원하는 스타일을 선택하면 해당 스타일로 이미지가 생성됩니다</li>
                   <li>• 추가 키워드를 입력하면 더 구체적인 이미지를 얻을 수 있습니다</li>
-                  <li>• 데모에서는 Unsplash를 사용하며, 실제로는 DALL-E, Midjourney 등을 연동할 수 있습니다</li>
+                  <li>• 각 이미지는 Unsplash의 고품질 사진으로 생성됩니다</li>
+                  <li>• 실제 환경에서는 DALL-E, Midjourney 등의 AI를 연동할 수 있습니다</li>
                 </ul>
               </div>
             </div>

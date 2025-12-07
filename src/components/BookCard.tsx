@@ -1,5 +1,5 @@
-import { Book } from '../App';
-import { Calendar, Hash, Check } from 'lucide-react';
+import { Book, Loan } from '../App';
+import { Calendar, Check, Star, Package } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 
 interface BookCardProps {
@@ -8,9 +8,10 @@ interface BookCardProps {
   onSelect: (id: string) => void;
   onBookClick: (book: Book) => void;
   isSelectionMode: boolean;
+  loans: Loan[];
 }
 
-export function BookCard({ book, isSelected, onSelect, onBookClick, isSelectionMode }: BookCardProps) {
+export function BookCard({ book, isSelected, onSelect, onBookClick, isSelectionMode, loans }: BookCardProps) {
   const handleClick = () => {
     if (isSelectionMode) {
       onSelect(book.id);
@@ -18,6 +19,24 @@ export function BookCard({ book, isSelected, onSelect, onBookClick, isSelectionM
       onBookClick(book);
     }
   };
+
+  // Calculate average rating
+  const calculateAverageRating = () => {
+    if (!book.ratings || book.ratings.length === 0) return 0;
+    const sum = book.ratings.reduce((acc, r) => acc + r.rating, 0);
+    return sum / book.ratings.length;
+  };
+
+  // Calculate available stock (total stock - currently loaned books)
+  const calculateAvailableStock = () => {
+    const currentlyLoaned = loans.filter(
+      (loan: Loan) => loan.bookId === book.id && !loan.returnDate
+    ).length;
+    return book.stock - currentlyLoaned;
+  };
+
+  const averageRating = calculateAverageRating();
+  const availableStock = calculateAvailableStock();
 
   return (
     <div 
@@ -62,15 +81,21 @@ export function BookCard({ book, isSelected, onSelect, onBookClick, isSelectionM
           {book.description}
         </p>
 
-        <div className="flex items-center gap-3 text-[10px] text-gray-500">
-          <div className="flex items-center gap-1">
-            <Calendar className="w-3 h-3" />
-            {book.publishedYear}
-          </div>
-          {book.isbn && (
+        <div className="flex items-center justify-between text-[10px] text-gray-500">
+          <div className="flex items-center gap-3">
             <div className="flex items-center gap-1">
-              <Hash className="w-3 h-3" />
-              {book.isbn.slice(-4)}
+              <Calendar className="w-3 h-3" />
+              {book.publishedYear}
+            </div>
+            <div className="flex items-center gap-1">
+              <Package className="w-3 h-3" />
+              재고 {availableStock}권
+            </div>
+          </div>
+          {averageRating > 0 && (
+            <div className="flex items-center gap-1 text-yellow-600">
+              <Star className="w-3 h-3 fill-yellow-500" />
+              {averageRating.toFixed(1)}
             </div>
           )}
         </div>
