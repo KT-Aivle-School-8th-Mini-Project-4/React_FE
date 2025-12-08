@@ -10,7 +10,7 @@ interface BookInventoryDialogProps {
 }
 
 // 정렬 기준 변경 (대출 관련 제거 -> 판매/매출 관련 추가)
-type SortField = 'title' | 'author' | 'genre' | 'isbn' | 'stock' | 'totalSold' | 'totalRevenue';
+type SortField = 'title' | 'author' | 'genre' | 'price' | 'stock' | 'totalSold' | 'totalRevenue';
 type SortDirection = 'asc' | 'desc';
 
 export function BookInventoryDialog({ books, orders, onClose, onEditBook }: BookInventoryDialogProps) {
@@ -19,16 +19,23 @@ export function BookInventoryDialog({ books, orders, onClose, onEditBook }: Book
     const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
     // ⭐ [핵심] 각 책별 판매 통계 계산
+    //
+
     const getBooksWithStats = () => {
         return books.map(book => {
-            // 이 책에 대한 모든 주문 내역 찾기
-            const bookOrders = orders.filter(o => o.bookId === book.id);
+            // 해당 책이 포함된 order.items만 추출
+            const relatedItems = orders.flatMap(order =>
+                order.items?.filter(item => item.bookId === book.id) ?? []
+            );
 
-            // 총 판매량 계산
-            const totalSold = bookOrders.reduce((sum, order) => sum + order.quantity, 0);
+            // 총 판매량
+            const totalSold = relatedItems.reduce((sum, item) => sum + item.quantity, 0);
 
-            // 총 매출액 계산
-            const totalRevenue = bookOrders.reduce((sum, order) => sum + order.totalPrice, 0);
+            // 총 매출 = subtotal 사용 (상세조회 응답 기준)
+            const totalRevenue = relatedItems.reduce(
+                (sum, item) => sum + (item.subtotal ?? 0),
+                0
+            );
 
             return {
                 ...book,
@@ -38,6 +45,7 @@ export function BookInventoryDialog({ books, orders, onClose, onEditBook }: Book
         });
     };
 
+
     // 검색 필터링
     const filteredBooks = getBooksWithStats().filter(book => {
         const query = searchQuery.toLowerCase();
@@ -45,7 +53,7 @@ export function BookInventoryDialog({ books, orders, onClose, onEditBook }: Book
             book.title.toLowerCase().includes(query) ||
             book.author.toLowerCase().includes(query) ||
             book.genre.toLowerCase().includes(query) ||
-            (book.isbn && book.isbn.toLowerCase().includes(query))
+            (book.price && String(book.price).includes(query))
         );
     });
 
@@ -75,7 +83,12 @@ export function BookInventoryDialog({ books, orders, onClose, onEditBook }: Book
     // ⭐ 전체 통계 계산 (상단 카드용)
     const totalBooks = books.length;
     const currentTotalStock = books.reduce((sum, book) => sum + book.stock, 0);
-    const totalSoldUnits = orders.reduce((sum, order) => sum + order.quantity, 0);
+    // const totalSoldUnits = orders.reduce((sum, order) => sum + order.quantity, 0);
+    const totalSoldUnits = orders.reduce(
+        (sum, order) => sum + (order.items?.reduce((s, i) => s + i.quantity, 0) ?? 0),
+        0
+    );
+
     const totalRevenueAll = orders.reduce((sum, order) => sum + order.totalPrice, 0);
 
     return (
@@ -145,7 +158,7 @@ export function BookInventoryDialog({ books, orders, onClose, onEditBook }: Book
                             type="text"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="도서 검색 (제목, 저자, 장르, ISBN)"
+                            placeholder="도서 검색 (제목, 저자, 장르, 가격)"
                             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         />
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -175,6 +188,12 @@ export function BookInventoryDialog({ books, orders, onClose, onEditBook }: Book
                                             장르 {sortBy === 'genre' && (sortDirection === 'asc' ? <ChevronUp className="w-4 h-4"/> : <ChevronDown className="w-4 h-4"/>)}
                                         </button>
                                     </th>
+                                    <th>
+                                        <button onClick={() => handleSort('price')}>
+                                            가격 {sortBy === 'price' && (sortDirection === 'asc' ? <ChevronUp/> : <ChevronDown/>)}
+                                        </button>
+                                    </th>
+
                                     <th className="px-4 py-3 text-center text-sm font-semibold text-gray-600">
                                         <button className="flex items-center gap-1 justify-center hover:text-gray-900" onClick={() => handleSort('stock')}>
                                             현재 재고 {sortBy === 'stock' && (sortDirection === 'asc' ? <ChevronUp className="w-4 h-4"/> : <ChevronDown className="w-4 h-4"/>)}
@@ -216,6 +235,10 @@ export function BookInventoryDialog({ books, orders, onClose, onEditBook }: Book
                           {book.genre}
                         </span>
                                         </td>
+
+                                        {/* 가격 */}
+                                        <td>{book.price.toLocaleString()}원</td>
+
 
                                         {/* 현재 재고 */}
                                         <td className="px-4 py-3 text-center">

@@ -95,7 +95,7 @@ export function AIImageGenerator({ bookId, bookTitle, bookGenre, bookDescription
         if (!selectedImage) return;
 
         try {
-            const response = await fetch(`http://localhost:8080/api/book/${bookId}/cover`, {
+            const response = await fetch(`http://localhost:8080/book/{bookId}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ coverImage: selectedImage })

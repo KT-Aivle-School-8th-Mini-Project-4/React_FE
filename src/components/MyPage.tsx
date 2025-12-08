@@ -151,16 +151,68 @@ export function MyPage({ user, books, allBooks, orders, onClose, onPasswordChang
                                     </div>
                                 ) : (
                                     <div className="space-y-4">
+                                        {/*{myOrders.map(order => {*/}
+                                        {/*    // 주문 정보에 있는 bookId로 전체 책 목록에서 책 정보를 찾아옴*/}
+                                        {/*    const bookInfo = allBooks.find(b => b.id === order.bookId);*/}
+
+                                        {/*    return (*/}
+                                        {/*        <div key={order.id} className="flex gap-5 p-5 bg-white border border-gray-200 rounded-xl hover:shadow-md transition-shadow">*/}
+                                        {/*            /!* 책 이미지 *!/*/}
+                                        {/*            <div className="w-20 h-28 flex-shrink-0 bg-gray-100 rounded-md overflow-hidden border">*/}
+                                        {/*                <img*/}
+                                        {/*                    src={bookInfo ? bookInfo.coverImage : 'https://via.placeholder.com/150?text=Deleted'}*/}
+                                        {/*                    alt="cover"*/}
+                                        {/*                    className="w-full h-full object-cover"*/}
+                                        {/*                />*/}
+                                        {/*            </div>*/}
+
+                                        {/*            /!* 주문 정보 *!/*/}
+                                        {/*            <div className="flex-1 flex flex-col justify-between">*/}
+                                        {/*                <div>*/}
+                                        {/*                    <div className="flex justify-between items-start">*/}
+                                        {/*                        <h4 className="text-lg font-bold text-gray-900 line-clamp-1">*/}
+                                        {/*                            {bookInfo ? bookInfo.title : '(삭제된 도서입니다)'}*/}
+                                        {/*                        </h4>*/}
+                                        {/*                        <span className="px-3 py-1 bg-green-50 text-green-700 text-xs font-bold rounded-full border border-green-200 flex items-center gap-1">*/}
+                                        {/*                            <CheckCircle className="w-3 h-3" /> 구매확정*/}
+                                        {/*                        </span>*/}
+                                        {/*                    </div>*/}
+                                        {/*                    <p className="text-sm text-gray-500 mt-1">{bookInfo?.author}</p>*/}
+                                        {/*                </div>*/}
+
+                                        {/*                <div className="flex items-end justify-between mt-3">*/}
+                                        {/*                    <div className="text-sm text-gray-500 flex flex-col gap-1">*/}
+                                        {/*                        <span className="flex items-center gap-1.5">*/}
+                                        {/*                            <Calendar className="w-3.5 h-3.5" />*/}
+                                        {/*                            {formatDate(order.purchaseDate)}*/}
+                                        {/*                        </span>*/}
+                                        {/*                        <span>주문번호: {order.id.slice(0, 8)}...</span>*/}
+                                        {/*                    </div>*/}
+                                        {/*                    <div className="text-right">*/}
+                                        {/*                        <span className="text-sm text-gray-500 mr-2">{order.quantity}권</span>*/}
+                                        {/*                        <span className="text-xl font-bold text-indigo-600">*/}
+                                        {/*                            {order.totalPrice.toLocaleString()}원*/}
+                                        {/*                        </span>*/}
+                                        {/*                    </div>*/}
+                                        {/*                </div>*/}
+                                        {/*            </div>*/}
+                                        {/*        </div>*/}
+                                        {/*    );*/}
+                                        {/*})}*/}
+
                                         {myOrders.map(order => {
-                                            // 주문 정보에 있는 bookId로 전체 책 목록에서 책 정보를 찾아옴
-                                            const bookInfo = allBooks.find(b => b.id === order.bookId);
+                                            // ✅ items 배열에서 첫 번째 책 정보를 가져온다.
+                                            const firstItem = order.items?.[0];
+
+                                            // 해당 책의 상세 정보를 allBooks에서 찾아온다.
+                                            const bookInfo = allBooks.find(b => b.id === firstItem?.bookId);
 
                                             return (
                                                 <div key={order.id} className="flex gap-5 p-5 bg-white border border-gray-200 rounded-xl hover:shadow-md transition-shadow">
                                                     {/* 책 이미지 */}
                                                     <div className="w-20 h-28 flex-shrink-0 bg-gray-100 rounded-md overflow-hidden border">
                                                         <img
-                                                            src={bookInfo ? bookInfo.coverImage : 'https://via.placeholder.com/150?text=Deleted'}
+                                                            src={bookInfo?.coverImage || "https://via.placeholder.com/150?text=No+Image"}
                                                             alt="cover"
                                                             className="w-full h-full object-cover"
                                                         />
@@ -171,34 +223,41 @@ export function MyPage({ user, books, allBooks, orders, onClose, onPasswordChang
                                                         <div>
                                                             <div className="flex justify-between items-start">
                                                                 <h4 className="text-lg font-bold text-gray-900 line-clamp-1">
-                                                                    {bookInfo ? bookInfo.title : '(삭제된 도서입니다)'}
+                                                                    {bookInfo?.title || "(삭제된 도서입니다)"}
                                                                 </h4>
+
                                                                 <span className="px-3 py-1 bg-green-50 text-green-700 text-xs font-bold rounded-full border border-green-200 flex items-center gap-1">
-                                                                    <CheckCircle className="w-3 h-3" /> 구매확정
-                                                                </span>
+                            <CheckCircle className="w-3 h-3" /> 구매확정
+                        </span>
                                                             </div>
                                                             <p className="text-sm text-gray-500 mt-1">{bookInfo?.author}</p>
                                                         </div>
 
                                                         <div className="flex items-end justify-between mt-3">
                                                             <div className="text-sm text-gray-500 flex flex-col gap-1">
-                                                                <span className="flex items-center gap-1.5">
-                                                                    <Calendar className="w-3.5 h-3.5" />
-                                                                    {formatDate(order.purchaseDate)}
-                                                                </span>
+                        <span className="flex items-center gap-1.5">
+                            <Calendar className="w-3.5 h-3.5" />
+                            {formatDate(order.purchaseDate)}
+                        </span>
                                                                 <span>주문번호: {order.id.slice(0, 8)}...</span>
                                                             </div>
+
                                                             <div className="text-right">
-                                                                <span className="text-sm text-gray-500 mr-2">{order.quantity}권</span>
+                                                                {/* 수량 변경됨 */}
+                                                                <span className="text-sm text-gray-500 mr-2">
+                            {firstItem?.quantity ?? 0}권
+                        </span>
+
                                                                 <span className="text-xl font-bold text-indigo-600">
-                                                                    {order.totalPrice.toLocaleString()}원
-                                                                </span>
+                            {order.totalPrice.toLocaleString()}원
+                        </span>
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
                                             );
                                         })}
+
                                     </div>
                                 )}
                             </div>

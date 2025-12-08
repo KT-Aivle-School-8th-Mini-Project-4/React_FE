@@ -18,7 +18,7 @@ export function AddBookDialog({ book, onClose, onSave }: AddBookDialogProps) {
         description: '',
         coverImage: '',
         publishedYear: new Date().getFullYear(),
-        isbn: '',
+        price: '',
         stock: 50 // 기본 재고 (구매 시스템 필수)
     });
 
@@ -34,7 +34,7 @@ export function AddBookDialog({ book, onClose, onSave }: AddBookDialogProps) {
                 description: book.description,
                 coverImage: book.coverImage,
                 publishedYear: book.publishedYear,
-                isbn: book.isbn || '',
+                price: book.price || '',
                 stock: book.stock
             });
         }
@@ -51,8 +51,8 @@ export function AddBookDialog({ book, onClose, onSave }: AddBookDialogProps) {
         // 1. URL 및 Method 결정
         const method = book ? "PUT" : "POST";
         const url = book
-            ? `http://localhost:8080/api/book/${book.id}`  // 수정
-            : `http://localhost:8080/api/book`;            // 등록
+            ? `http://localhost:8080/book/${book.id}`  // 수정
+            : `http://localhost:8080/book`;            // 등록
 
         try {
             // 2. API 호출
@@ -120,7 +120,14 @@ export function AddBookDialog({ book, onClose, onSave }: AddBookDialogProps) {
                         <InputField label="재고 수량" type="number" value={formData.stock} onChange={(v:any) => handleChange("stock", Number(v))} />
                     </div>
 
-                    <InputField label="ISBN" value={formData.isbn} onChange={(v:any) => handleChange("isbn", v)} placeholder="선택 입력" />
+                    {/*<InputField label="가격" value={formData.price} onChange={(v:any) => handleChange("price", v)} placeholder="선택 입력" />*/}
+                    <InputField
+                        label="가격"
+                        type="number"
+                        value={formData.price}
+                        onChange={(v:any) => handleChange("price", Number(v))}
+                    />
+
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">설명</label>
@@ -177,6 +184,7 @@ export function AddBookDialog({ book, onClose, onSave }: AddBookDialogProps) {
             {/* AI Generator Popup */}
             {showAIGenerator && (
                 <AIImageGenerator
+                    bookId={book ? book.id:null}
                     bookTitle={formData.title}
                     bookGenre={formData.genre}
                     onClose={() => setShowAIGenerator(false)}

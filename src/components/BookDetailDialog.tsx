@@ -84,7 +84,7 @@ export function BookDetailDialog({
                 return;
             }
 
-            const response = await fetch(`http://localhost:8080/api/books/${book.id}/comments`, {
+            const response = await fetch(`http://localhost:8080/comment/${book.id}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -119,10 +119,10 @@ export function BookDetailDialog({
     };
 
     // 리뷰 수정 모드 진입
-    const handleEditReview = (reviewId: string) => {
-        const review = book.reviews.find(r => r.id === reviewId);
+    const handleEditReview = (commentId: string) => {
+        const review = book.reviews.find(r => r.id === commentId);
         if (review) {
-            setEditingReviewId(reviewId);
+            setEditingReviewId(commentId);
             setEditingReviewText(review.comment);
         }
     };
@@ -135,7 +135,7 @@ export function BookDetailDialog({
             const token = localStorage.getItem('accessToken');
             if (!token) return;
 
-            const response = await fetch(`http://localhost:8080/api/comments/${editingReviewId}`, {
+            const response = await fetch(`http://localhost:8080/comment/${editingReviewId}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -171,7 +171,7 @@ export function BookDetailDialog({
             const token = localStorage.getItem('accessToken');
             if (!token) return;
 
-            const response = await fetch(`http://localhost:8080/api/comments/${reviewId}`, {
+            const response = await fetch(`http://localhost:8080/comment/${reviewId}`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
@@ -207,15 +207,55 @@ export function BookDetailDialog({
         if (purchaseQuantity > 1) setPurchaseQuantity(prev => prev - 1);
     };
 
+    const updateStock = async (newStock: number) => {
+        try {
+            const token = localStorage.getItem('accessToken');
+            if (!token) {
+                alert("로그인이 필요합니다.");
+                return;
+            }
+
+            const response = await fetch(`http://localhost:8080/book/${book.id}/stock`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({ stock: newStock })
+            });
+
+            if (!response.ok) {
+                throw new Error("재고 수정 실패");
+            }
+
+            // UI 업데이트
+            onUpdateBook({ ...book, stock: newStock });
+
+        } catch (error: any) {
+            alert(error.message);
+        }
+    };
+
+
     // [관리자용] 재고 관리 핸들러
+    // const handleAdminIncreaseStock = () => {
+    //     onUpdateBook({ ...book, stock: book.stock + 1 });
+    // };
+    //
+    // const handleAdminDecreaseStock = () => {
+    //     if (book.stock <= 0) return;
+    //     onUpdateBook({ ...book, stock: book.stock - 1 });
+    // };
+
     const handleAdminIncreaseStock = () => {
-        onUpdateBook({ ...book, stock: book.stock + 1 });
+        updateStock(book.stock + 1);
     };
 
     const handleAdminDecreaseStock = () => {
         if (book.stock <= 0) return;
-        onUpdateBook({ ...book, stock: book.stock - 1 });
+        updateStock(book.stock - 1);
     };
+
 
     const averageRating = calculateAverageRating();
     const availableStock = book.stock;
@@ -278,10 +318,10 @@ export function BookDetailDialog({
                                     <div className="flex items-center gap-2 text-gray-600"><Calendar className="w-4 h-4" /><span className="text-sm">출판연도</span></div>
                                     <span className="text-gray-900">{book.publishedYear}년</span>
                                 </div>
-                                {book.isbn && (
+                                {book.price && (
                                     <div className="flex items-center gap-3">
-                                        <div className="flex items-center gap-2 text-gray-600"><Hash className="w-4 h-4" /><span className="text-sm">ISBN</span></div>
-                                        <span className="text-gray-900">{book.isbn}</span>
+                                        <div className="flex items-center gap-2 text-gray-600"><Hash className="w-4 h-4" /><span className="text-sm">가격</span></div>
+                                        <span className="text-gray-900">{book.price}</span>
                                     </div>
                                 )}
                                 <div className="flex items-center gap-3">
@@ -406,7 +446,8 @@ export function BookDetailDialog({
                                         </div>
                                         <div className="flex gap-3 mt-2">
                                             <button onClick={() => onAddToCart(book.id, purchaseQuantity)} className="flex-1 px-4 py-3 bg-white border border-indigo-600 text-indigo-600 rounded-xl hover:bg-indigo-50 transition-colors font-medium flex items-center justify-center gap-2"><ShoppingBag className="w-5 h-5" /> 장바구니</button>
-                                            <button onClick={() => onPurchase(book.id, purchaseQuantity, BOOK_PRICE * purchaseQuantity)} className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-medium shadow-md flex items-center justify-center gap-2"><CreditCard className="w-5 h-5" /> 바로 구매</button>
+                                            {/*<button onClick={() => onPurchase(book.id, purchaseQuantity, BOOK_PRICE * purchaseQuantity)} className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-medium shadow-md flex items-center justify-center gap-2"><CreditCard className="w-5 h-5" /> 바로 구매</button>*/}
+
                                         </div>
                                     </div>
                                 ) : (
