@@ -34,7 +34,7 @@ export default function App() {
     // 도서 목록 불러오기 (API)
     const fetchBooks = async () => {
         try {
-            const res = await fetch("http://localhost:8080/api/book");
+            const res = await fetch("http://localhost:8080/book");
             if (!res.ok) throw new Error("Failed to fetch books");
             const data = await res.json();
             // 날짜 변환 등 데이터 전처리
@@ -171,7 +171,7 @@ export default function App() {
 
         try {
             for (const bookId of selectedBookIds) {
-                await fetch(`http://localhost:8080/book/${id}`, { method: "DELETE" });
+                await fetch(`http://localhost:8080/book/${bookId}`, { method: "DELETE" });
             }
             alert("선택한 도서가 삭제되었습니다.");
             fetchBooks();

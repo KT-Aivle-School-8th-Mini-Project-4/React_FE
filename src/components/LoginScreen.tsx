@@ -39,7 +39,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
         // 2. 실제 백엔드 API 로그인 시도
         try {
             // ※ 백엔드 API 주소 확인 (보통 /api/login)
-            const response = await fetch('http://localhost:8080/login', {
+            const response = await fetch('http://localhost:8080/user/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 // 백엔드가 요구하는 필드명에 맞춰 전송 (email 또는 userId)
