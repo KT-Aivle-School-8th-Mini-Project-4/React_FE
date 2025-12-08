@@ -314,6 +314,47 @@ export function AddBookDialog({ book, onClose, onSave }: AddBookDialogProps) {
     };
 
 
+    // const handleSubmit = (e: React.FormEvent) => {
+    //     e.preventDefault();
+    //
+    //     // 입력 검증
+    //     if (!formData.title || !formData.category || !formData.description) {
+    //         alert("필수 정보를 입력해주세요.");
+    //         return;
+    //     }
+    //
+    //     // ★ 기존 book 이 있으면 "수정"
+    //     if (book) {
+    //         const updatedBook: Book = {
+    //             ...book,
+    //             ...formData,
+    //             publishedYear: Number(formData.publishedYear) || book.publishedYear
+    //         };
+    //
+    //         onSave(updatedBook);
+    //         onClose();
+    //         return;
+    //     }
+    //
+    //     // ★ 신규 도서 추가 (Mock book 생성)
+    //     const newMockBook: Book = {
+    //         id: Date.now().toString(), // 가짜 ID
+    //         title: formData.title,
+    //         category: formData.category,
+    //         description: formData.description,
+    //         coverImage: formData.coverImage || "",
+    //         publishedYear: Number(formData.publishedYear) || 2025,
+    //         createdBy: currentUser?.id || "KT",
+    //         createdAt: new Date(),
+    //         ratings: [],
+    //         reviews: [],
+    //         stock: 0,
+    //     };
+    //
+    //     onSave(newMockBook);  // App.tsx로 전달 → UI에 즉시 반영
+    //     onClose();
+    // };
+
     // ⭐ AI 이미지 생성 결과 반영
     const handleAIGenerate = (url: string) => {
         handleChange("coverImage", url);

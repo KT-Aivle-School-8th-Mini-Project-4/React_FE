@@ -28,7 +28,7 @@ export function MyPage({ user, books, loans, allBooks, onClose, onPasswordChange
     useEffect(() => {
         setLoadingMyBooks(true);
 
-        // API 대신 가짜 데이터 사용
+        // API 대신 mock data 사용 (수정필요)
         setTimeout(() => {
             setMyBooks([
                 {

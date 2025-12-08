@@ -140,9 +140,6 @@ export default function App() {
   }, []);
 
 
-
-
-
     // Initialize books
   const [books, setBooks] = useState<Book[]>([]);
 
@@ -159,6 +156,23 @@ export default function App() {
      useEffect(() => {
         fetchBooks();
         }, []);
+
+    // const [books, setBooks] = useState<Book[]>([
+    //     {
+    //         id: "1",
+    //         title: "샘플 책",
+    //         category: "소설",
+    //         description: "테스트용 책입니다",
+    //         coverImage: "",
+    //         publishedYear: 2020,
+    //         createdBy: "KT",
+    //         createdAt: new Date(),
+    //         ratings: [],
+    //         reviews: [],
+    //         stock: 5
+    //     }
+    // ]);
+
 
     // mock data로 첫 화면 테스트
     // useEffect(() => {
@@ -295,77 +309,150 @@ export default function App() {
 
 
 //삭제?
-  const handleEditBook = (book: Book) => {
-    const oldBook = books.find(b => b.id === book.id);
-    if (oldBook) {
-      // Track changes
-      const changes: { field: string; oldValue: string; newValue: string }[] = [];
-      
-      if (oldBook.title !== book.title) {
-        changes.push({ field: '제목', oldValue: oldBook.title, newValue: book.title });
-      }
-      // if (oldBook.author !== book.author) {
-      //   changes.push({ field: '저자', oldValue: oldBook.author, newValue: book.author });
-      // }
-      if (oldBook.category !== book.category) {
-        changes.push({ field: '분류', oldValue: oldBook.category, newValue: book.category });
-      }
-      if (oldBook.description !== book.description) {
-        changes.push({ field: '내용', oldValue: oldBook.description, newValue: book.description });
-      }
-      if (oldBook.publishedYear !== book.publishedYear) {
-        changes.push({ field: '출판연도', oldValue: oldBook.publishedYear.toString(), newValue: book.publishedYear.toString() });
-      }
-      // if (oldBook.isbn !== book.isbn) {
-      //   changes.push({ field: 'ISBN', oldValue: oldBook.isbn || '', newValue: book.isbn || '' });
-      // }
+//   const handleEditBook = (book: Book) => {
+//     const oldBook = books.find(b => b.id === book.id);
+//     if (oldBook) {
+//       // Track changes
+//       const changes: { field: string; oldValue: string; newValue: string }[] = [];
+//
+//       if (oldBook.title !== book.title) {
+//         changes.push({ field: '제목', oldValue: oldBook.title, newValue: book.title });
+//       }
+//       // if (oldBook.author !== book.author) {
+//       //   changes.push({ field: '저자', oldValue: oldBook.author, newValue: book.author });
+//       // }
+//       if (oldBook.category !== book.category) {
+//         changes.push({ field: '분류', oldValue: oldBook.category, newValue: book.category });
+//       }
+//       if (oldBook.description !== book.description) {
+//         changes.push({ field: '내용', oldValue: oldBook.description, newValue: book.description });
+//       }
+//       if (oldBook.publishedYear !== book.publishedYear) {
+//         changes.push({ field: '출판연도', oldValue: oldBook.publishedYear.toString(), newValue: book.publishedYear.toString() });
+//       }
+//       // if (oldBook.isbn !== book.isbn) {
+//       //   changes.push({ field: 'ISBN', oldValue: oldBook.isbn || '', newValue: book.isbn || '' });
+//       // }
+//
+//       if (changes.length > 0) {
+//         const editRecord: EditRecord = {
+//           id: Date.now().toString(),
+//           bookId: book.id,
+//           timestamp: new Date(),
+//           before: oldBook,
+//           after: book,
+//           changes
+//         };
+//         setEditHistory([editRecord, ...editHistory]);
+//       }
+//     }
+//
+//     setBooks(books.map(b => b.id === book.id ? book : b));
+//     setEditingBook(null);
+//     setIsDialogOpen(false);
+//     setSelectedBookIds([]);
+//     setIsSelectionMode(false);
+//     setSelectionType(null);
+//   };
 
-      if (changes.length > 0) {
-        const editRecord: EditRecord = {
-          id: Date.now().toString(),
-          bookId: book.id,
-          timestamp: new Date(),
-          before: oldBook,
-          after: book,
-          changes
-        };
-        setEditHistory([editRecord, ...editHistory]);
-      }
-    }
+    const handleEditBook = async (updatedBook: Book) => {
+        // 1) 백엔드에 PUT/PATCH 요청 (실제 반영)
+        const res = await fetch(`http://localhost:8080/api/book/${updatedBook.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updatedBook)
+        });
 
-    setBooks(books.map(b => b.id === book.id ? book : b));
-    setEditingBook(null);
-    setIsDialogOpen(false);
-    setSelectedBookIds([]);
-    setIsSelectionMode(false);
-    setSelectionType(null);
-  };
+        if (!res.ok) {
+            alert("도서 수정 실패");
+            return;
+        }
+
+        const saved = await res.json();
+
+        // 2) 프론트에서 books 업데이트
+        setBooks(prev => prev.map(b => b.id === saved.id ? saved : b));
+
+        setEditingBook(null);
+        setIsDialogOpen(false);
+    };
+
 //삭제?
-    const handleDeleteBook = (id: string) => {
-        // DB 삭제는 이미 MyPage에서 실행됨 → 여기선 로컬 state만 수정
+//     const handleDeleteBook = (id: string) => {
+//         // DB 삭제는 이미 MyPage에서 실행됨 → 여기선 로컬 state만 수정
+//         setBooks(prev => prev.filter(b => b.id !== id));
+//     };
+
+
+    const handleDeleteBook = async (id: string) => {
+        const res = await fetch(`http://localhost:8080/api/book/${id}`, {
+            method: "DELETE",
+        });
+
+        if (!res.ok) {
+            alert("도서 삭제 실패");
+            return;
+        }
+
         setBooks(prev => prev.filter(b => b.id !== id));
     };
 
+  //   const handleBulkDelete = () => {
+  //   if (selectedBookIds.length === 0) return;
+  //   if (confirm(`선택한 ${selectedBookIds.length}권의 도서를 삭제하시겠습니까?`)) {
+  //     const deletedBooks = books.filter(b => selectedBookIds.includes(b.id));
+  //     const deleteRecords: DeleteRecord[] = deletedBooks.map(book => ({
+  //       id: Date.now().toString() + book.id,
+  //       book,
+  //       timestamp: new Date()
+  //     }));
+  //
+  //     setDeleteHistory([...deleteRecords, ...deleteHistory]);
+  //     setBooks(books.filter(b => !selectedBookIds.includes(b.id)));
+  //     setSelectedBookIds([]);
+  //     setIsSelectionMode(false);
+  //     setSelectionType(null);
+  //   }
+  // };
 
-    const handleBulkDelete = () => {
-    if (selectedBookIds.length === 0) return;
-    if (confirm(`선택한 ${selectedBookIds.length}권의 도서를 삭제하시겠습니까?`)) {
-      const deletedBooks = books.filter(b => selectedBookIds.includes(b.id));
-      const deleteRecords: DeleteRecord[] = deletedBooks.map(book => ({
-        id: Date.now().toString() + book.id,
-        book,
-        timestamp: new Date()
-      }));
-      
-      setDeleteHistory([...deleteRecords, ...deleteHistory]);
-      setBooks(books.filter(b => !selectedBookIds.includes(b.id)));
-      setSelectedBookIds([]);
-      setIsSelectionMode(false);
-      setSelectionType(null);
-    }
-  };
+    const handleBulkDelete = async () => {
+        if (selectedBookIds.length === 0) return;
 
-  const handleBulkEdit = () => {
+        if (!confirm(`선택한 ${selectedBookIds.length}권의 도서를 삭제하시겠습니까?`)) {
+            return;
+        }
+
+        try {
+            // 1) 선택한 책들을 하나씩 백엔드에서 삭제 요청
+            for (const bookId of selectedBookIds) {
+                const response = await fetch(`http://localhost:8080/api/book/${bookId}`, {
+                    method: "DELETE",
+                });
+
+                if (!response.ok) {
+                    console.error(`도서 삭제 실패: ${bookId}`);
+                    alert(`${bookId} 삭제 실패`);
+                    continue;
+                }
+            }
+
+            // 2) 프론트 로컬 상태에서도 제거
+            setBooks(prev => prev.filter(b => !selectedBookIds.includes(b.id)));
+
+            // 3) 선택 초기화
+            setSelectedBookIds([]);
+            setIsSelectionMode(false);
+            setSelectionType(null);
+
+            alert("선택한 도서가 삭제되었습니다.");
+
+        } catch (err) {
+            console.error("일괄 삭제 오류:", err);
+            alert("삭제 중 서버 오류 발생");
+        }
+    };
+
+    const handleBulkEdit = () => {
     if (selectedBookIds.length === 0) return;
     if (selectedBookIds.length === 1) {
       const book = books.find(b => b.id === selectedBookIds[0]);
@@ -401,10 +488,10 @@ export default function App() {
     }
   };
 
-  const handleRestoreBook = (deleteRecord: DeleteRecord) => {
-    setBooks([...books, deleteRecord.book]);
-    setDeleteHistory(deleteHistory.filter(d => d.id !== deleteRecord.id));
-  };
+  // const handleRestoreBook = (deleteRecord: DeleteRecord) => {
+  //   setBooks([...books, deleteRecord.book]);
+  //   setDeleteHistory(deleteHistory.filter(d => d.id !== deleteRecord.id));
+  // };
 
   const handleBookClick = (book: Book) => {
     if (!isSelectionMode) {
@@ -739,7 +826,7 @@ const handleLoanBook = async (bookId: string) => {
         isOpen={isSidebarOpen}
         selectedCategory={selectedCategory}
         sortBy={sortBy}
-        onCategoryChange={setSelectedCategory()}
+        onCategoryChange={setSelectedCategory}
         onSortChange={setSortBy}
         onClose={() => setIsSidebarOpen(false)}
       />
