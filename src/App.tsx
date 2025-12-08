@@ -6,7 +6,8 @@ import { LoginScreen } from './components/LoginScreen';
 import { MyPage } from './components/MyPage';
 import { BookDetailDialog } from './components/BookDetailDialog';
 import { BookInventoryDialog } from './components/BookInventoryDialog';
-import { Plus, Menu, X, Edit2, Trash2, Search, LogOut, User as UserIcon, Package } from 'lucide-react';
+import { Cart, CartItem } from './components/Cart';
+import { Plus, Menu, X, Edit2, Trash2, Search, LogOut, User as UserIcon, Package, ShoppingCart } from 'lucide-react';
 import ktAivleLogo from 'figma:asset/e5ac75b360c5f16e2a9a70e851e77229ca22f463.png';
 import { initialBooks } from './data/initialBooks';
 
@@ -23,14 +24,11 @@ export interface Review {
   timestamp: Date;
 }
 
-export interface Loan {
+export interface Purchase {
   id: string;
   bookId: string;
   userId: string;
-  loanDate: Date;
-  dueDate: Date;
-  returnDate?: Date;
-  extended: boolean; // Whether the loan has been extended
+  purchaseDate: Date;
 }
 
 export interface Book {
@@ -92,20 +90,18 @@ export default function App() {
   
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   
-  // Initialize loans from localStorage or use empty array
-  const [loans, setLoans] = useState<Loan[]>(() => {
-    const savedLoans = localStorage.getItem('loans');
-    if (savedLoans) {
+  // Initialize purchases from localStorage or use empty array
+  const [purchases, setPurchases] = useState<Purchase[]>(() => {
+    const savedPurchases = localStorage.getItem('purchases');
+    if (savedPurchases) {
       try {
-        const parsed = JSON.parse(savedLoans);
-        return parsed.map((loan: any) => ({
-          ...loan,
-          loanDate: new Date(loan.loanDate),
-          dueDate: new Date(loan.dueDate),
-          returnDate: loan.returnDate ? new Date(loan.returnDate) : undefined
+        const parsed = JSON.parse(savedPurchases);
+        return parsed.map((purchase: any) => ({
+          ...purchase,
+          purchaseDate: new Date(purchase.purchaseDate)
         }));
       } catch (e) {
-        console.error('Error parsing saved loans:', e);
+        console.error('Error parsing saved purchases:', e);
       }
     }
     return [];
@@ -146,7 +142,12 @@ export default function App() {
   const [selectionType, setSelectionType] = useState<'edit' | 'delete' | null>(null);
   const [isMyPageOpen, setIsMyPageOpen] = useState(false);
   const [isInventoryOpen, setIsInventoryOpen] = useState(false);
-  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
+  const [selectedBookId, setSelectedBookId] = useState<string | null>(null);
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  
+  // Get the current selected book from books array (always fresh data)
+  const selectedBook = selectedBookId ? books.find(b => b.id === selectedBookId) || null : null;
   
   // History
   const [editHistory, setEditHistory] = useState<EditRecord[]>([]);
@@ -168,10 +169,10 @@ export default function App() {
     localStorage.setItem('books', JSON.stringify(books));
   }, [books]);
 
-  // Save loans to localStorage whenever they change
+  // Save purchases to localStorage whenever they change
   useEffect(() => {
-    localStorage.setItem('loans', JSON.stringify(loans));
-  }, [loans]);
+    localStorage.setItem('purchases', JSON.stringify(purchases));
+  }, [purchases]);
 
   // Save users to localStorage whenever they change
   useEffect(() => {
@@ -333,7 +334,7 @@ export default function App() {
 
   const handleBookClick = (book: Book) => {
     if (!isSelectionMode) {
-      setSelectedBook(book);
+      setSelectedBookId(book.id);
     }
   };
 
@@ -389,99 +390,69 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Check if user has overdue loans
-  const hasOverdueLoans = (userId: string) => {
-    const now = new Date();
-    return loans.some(loan => 
-      loan.userId === userId &&
-      !loan.returnDate &&
-      loan.dueDate < now
-    );
-  };
-
-  // Handle book loan
-  const handleLoanBook = (bookId: string) => {
+  // Handle book purchase
+  const handlePurchaseBook = (bookId: string, quantity: number = 1) => {
     if (!currentUser) return;
-
-    // Check for overdue loans
-    if (hasOverdueLoans(currentUser.id)) {
-      alert('연체된 도서가 있어 대출이 불가능합니다. 먼저 반납해주세요.');
-      return;
-    }
 
     const book = books.find(b => b.id === bookId);
     if (!book) return;
 
     // Check available stock
-    const currentLoans = loans.filter(l => l.bookId === bookId && !l.returnDate);
-    const availableStock = book.stock - currentLoans.length;
-
-    if (availableStock <= 0) {
-      alert('재고가 부족합니다.');
+    if (book.stock < quantity) {
+      alert(`재고가 부족합니다. (현재 재고: ${book.stock}권)`);
       return;
     }
 
-    // Create loan
-    const loanDate = new Date();
-    const dueDate = new Date();
-    dueDate.setDate(dueDate.getDate() + 7); // 7 days loan period
+    // Create purchases
+    const newPurchases: Purchase[] = [];
+    for (let i = 0; i < quantity; i++) {
+      newPurchases.push({
+        id: `${Date.now()}_${i}`,
+        bookId,
+        userId: currentUser.id,
+        purchaseDate: new Date()
+      });
+    }
 
-    const newLoan: Loan = {
-      id: Date.now().toString(),
-      bookId,
-      userId: currentUser.id,
-      loanDate,
-      dueDate,
-      extended: false
-    };
+    const updatedPurchases = [...purchases, ...newPurchases];
+    setPurchases(updatedPurchases);
+    localStorage.setItem('purchases', JSON.stringify(updatedPurchases));
 
-    const updatedLoans = [...loans, newLoan];
-    setLoans(updatedLoans);
-    localStorage.setItem('loans', JSON.stringify(updatedLoans));
-
-    alert('대출이 완료되었습니다.');
-  };
-
-  // Handle book return (loan cancellation)
-  const handleReturnBook = (loanId: string) => {
-    if (!currentUser) return;
-
-    const loan = loans.find(l => l.id === loanId);
-    if (!loan) return;
-
-    // Mark loan as returned
-    const updatedLoans = loans.map(l => 
-      l.id === loanId 
-        ? { ...l, returnDate: new Date() }
-        : l
+    // Decrease stock
+    const updatedBooks = books.map(b =>
+      b.id === bookId ? { ...b, stock: b.stock - quantity } : b
     );
+    setBooks(updatedBooks);
 
-    setLoans(updatedLoans);
-    localStorage.setItem('loans', JSON.stringify(updatedLoans));
-
-    alert('대출이 취소되었습니다.');
+    alert(`${quantity}권 구매가 완료되었습니다.`);
   };
 
-  // Handle loan extension
-  const handleExtendLoan = (loanId: string) => {
-    const loan = loans.find(l => l.id === loanId);
-    if (!loan) return;
+  // Handle purchase cancellation
+  const handleCancelPurchase = (purchaseIds: string[]) => {
+    if (!currentUser) return;
+    if (purchaseIds.length === 0) return;
 
-    if (loan.extended) {
-      alert('이미 연장된 대출입니다.');
-      return;
-    }
+    // Get the first purchase to know which book
+    const firstPurchase = purchases.find(p => p.id === purchaseIds[0]);
+    if (!firstPurchase) return;
 
-    // Extend due date by 7 days
-    const newDueDate = new Date(loan.dueDate);
-    newDueDate.setDate(newDueDate.getDate() + 7);
+    // Remove purchases
+    const updatedPurchases = purchases.filter(p => !purchaseIds.includes(p.id));
+    setPurchases(updatedPurchases);
+    localStorage.setItem('purchases', JSON.stringify(updatedPurchases));
 
-    setLoans(loans.map(l => 
-      l.id === loanId 
-        ? { ...l, dueDate: newDueDate, extended: true } 
-        : l
-    ));
-    alert('대출이 연장되었습니다.');
+    // Increase stock back
+    const updatedBooks = books.map(b =>
+      b.id === firstPurchase.bookId ? { ...b, stock: b.stock + purchaseIds.length } : b
+    );
+    setBooks(updatedBooks);
+
+    alert(`${purchaseIds.length}권 구매가 취소되었습니다. 재고가 복구되었습니다.`);
+  };
+
+  // Handle refresh to home
+  const handleRefreshToHome = () => {
+    window.location.reload();
   };
 
   // Show login screen if not logged in
@@ -492,9 +463,9 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* App Bar */}
-      <header className="bg-white shadow-md sticky top-0 z-40 border-b border-gray-200">
-        <div className="mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between py-3 gap-4">
+      <header className="bg-white shadow-md sticky top-0 z-40 border-b border-gray-200 h-[65px]">
+        <div className="mx-auto px-4 sm:px-6 lg:px-8 h-full">
+          <div className="flex items-center justify-between h-full gap-4">
             {/* Left Section - Logo and Menu */}
             <div className="flex items-center gap-3">
               <button
@@ -505,8 +476,15 @@ export default function App() {
               </button>
 
               <div className="flex items-center gap-2">
-                <img src={ktAivleLogo} alt="KT Aivle School Logo" className="h-8" />
-                <h1 className="text-gray-900 whitespace-nowrap">AI 도서 관리</h1>
+                <button onClick={handleRefreshToHome} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                  <img src={ktAivleLogo} alt="KT Aivle School Logo" className="h-8 cursor-pointer" />
+                </button>
+                <div>
+                  <h1 className="text-gray-900 whitespace-nowrap">AI 도서 관리</h1>
+                  <p className="text-xs text-gray-600">
+                    ID : {currentUser.id} ({currentUser.role === 'admin' ? '관리자 계정' : '일반 계정'})
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -629,7 +607,7 @@ export default function App() {
       {/* Sidebar - Overlay when opened */}
       <Sidebar
         books={books}
-        loans={loans}
+        purchases={purchases}
         currentUser={currentUser}
         isOpen={isSidebarOpen}
         selectedGenre={selectedGenre}
@@ -679,7 +657,7 @@ export default function App() {
         
         <BookList 
           books={getCurrentPageBooks()} 
-          loans={loans}
+          purchases={purchases}
           selectedBookIds={selectedBookIds}
           onSelectBook={handleSelectBook}
           onBookClick={handleBookClick}
@@ -741,7 +719,7 @@ export default function App() {
         <MyPage
           user={currentUser}
           books={isAdmin ? books : books.filter(b => b.createdBy === currentUser.id)}
-          loans={loans}
+          purchases={purchases}
           allBooks={books}
           onClose={() => setIsMyPageOpen(false)}
           onPasswordChange={handlePasswordChange}
@@ -751,8 +729,9 @@ export default function App() {
             setIsMyPageOpen(false);
           }}
           onDeleteBook={handleDeleteBook}
-          onReturnBook={handleReturnBook}
-          onExtendLoan={handleExtendLoan}
+          onUpdateBook={(updatedBook) => {
+            setBooks(books.map(b => b.id === updatedBook.id ? updatedBook : b));
+          }}
         />
       )}
 
@@ -761,15 +740,14 @@ export default function App() {
         <BookDetailDialog
           book={selectedBook}
           currentUser={currentUser}
-          loans={loans}
-          onClose={() => setSelectedBook(null)}
+          purchases={purchases}
+          onClose={() => setSelectedBookId(null)}
           onUpdateBook={(updatedBook) => {
             setBooks(books.map(b => b.id === updatedBook.id ? updatedBook : b));
-            setSelectedBook(updatedBook);
+            setSelectedBookId(updatedBook.id);
           }}
-          onLoanBook={handleLoanBook}
-          onReturnBook={handleReturnBook}
-          hasOverdueLoans={hasOverdueLoans(currentUser.id)}
+          onPurchaseBook={handlePurchaseBook}
+          onCancelPurchase={handleCancelPurchase}
         />
       )}
 
@@ -777,7 +755,7 @@ export default function App() {
       {isInventoryOpen && currentUser && isAdmin && (
         <BookInventoryDialog
           books={books}
-          loans={loans}
+          purchases={purchases}
           onClose={() => setIsInventoryOpen(false)}
           onEditBook={(book) => {
             setEditingBook(book);

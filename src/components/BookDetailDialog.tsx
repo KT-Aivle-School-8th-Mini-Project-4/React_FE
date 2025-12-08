@@ -1,23 +1,24 @@
 import { useState } from 'react';
-import { Book, Rating, Review, User, Loan } from '../App';
-import { X, BookOpen, User as UserIcon, Calendar, Hash, Tag, Star, MessageSquare, Send, Edit2, Trash2, Check, XCircle, Package, Plus, Minus } from 'lucide-react';
+import { Book, Rating, Review, User, Purchase } from '../App';
+import { X, BookOpen, User as UserIcon, Calendar, Hash, Tag, Star, MessageSquare, Send, Edit2, Trash2, Check, XCircle, Package, Plus, Minus, ShoppingCart } from 'lucide-react';
 
 interface BookDetailDialogProps {
   book: Book;
   currentUser: User;
-  loans: Loan[];
+  purchases: Purchase[];
   onClose: () => void;
   onUpdateBook: (book: Book) => void;
-  onLoanBook?: (bookId: string) => void;
-  onReturnBook?: (loanId: string) => void;
-  hasOverdueLoans?: boolean;
+  onPurchaseBook?: (bookId: string, quantity: number) => void;
+  onCancelPurchase?: (purchaseIds: string[]) => void;
 }
 
-export function BookDetailDialog({ book, currentUser, loans, onClose, onUpdateBook, onLoanBook, onReturnBook, hasOverdueLoans }: BookDetailDialogProps) {
+export function BookDetailDialog({ book, currentUser, purchases, onClose, onUpdateBook, onPurchaseBook, onCancelPurchase }: BookDetailDialogProps) {
   const [reviewText, setReviewText] = useState('');
   const [hoverRating, setHoverRating] = useState(0);
   const [editingReviewId, setEditingReviewId] = useState<string | null>(null);
   const [editingReviewText, setEditingReviewText] = useState('');
+  const [purchaseQuantity, setPurchaseQuantity] = useState(1);
+  const [cancelQuantity, setCancelQuantity] = useState(1);
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat('ko-KR', {
@@ -100,19 +101,14 @@ export function BookDetailDialog({ book, currentUser, loans, onClose, onUpdateBo
   };
 
   // Handle review update
-  const handleUpdateReview = () => {
+  const handleUpdateReview = (reviewId: string) => {
     if (!editingReviewText.trim()) return;
 
-    const updatedReviews = book.reviews.map(r => {
-      if (r.id === editingReviewId) {
-        return {
-          ...r,
-          comment: editingReviewText.trim(),
-          timestamp: new Date()
-        };
-      }
-      return r;
-    });
+    const updatedReviews = book.reviews.map(r =>
+      r.id === reviewId
+        ? { ...r, comment: editingReviewText.trim(), timestamp: new Date() }
+        : r
+    );
 
     onUpdateBook({
       ...book,
@@ -125,38 +121,36 @@ export function BookDetailDialog({ book, currentUser, loans, onClose, onUpdateBo
 
   // Handle review deletion
   const handleDeleteReview = (reviewId: string) => {
-    const updatedReviews = book.reviews.filter(r => r.id !== reviewId);
-
-    onUpdateBook({
-      ...book,
-      reviews: updatedReviews
-    });
+    if (confirm('이 리뷰를 삭제하시겠습니까?')) {
+      onUpdateBook({
+        ...book,
+        reviews: book.reviews.filter(r => r.id !== reviewId)
+      });
+    }
   };
 
-  // Calculate available stock
-  const calculateAvailableStock = () => {
-    const currentLoans = loans.filter(l => l.bookId === book.id && !l.returnDate);
-    return book.stock - currentLoans.length;
+  // Cancel review editing
+  const handleCancelEdit = () => {
+    setEditingReviewId(null);
+    setEditingReviewText('');
   };
 
-  // Handle stock increase
+  // Handle stock increase (Admin only)
   const handleIncreaseStock = () => {
+    if (currentUser.role !== 'admin') return;
+    
     onUpdateBook({
       ...book,
       stock: book.stock + 1
     });
   };
 
-  // Handle stock decrease
+  // Handle stock decrease (Admin only)
   const handleDecreaseStock = () => {
-    if (book.stock <= 0) return;
+    if (currentUser.role !== 'admin') return;
     
-    // Calculate currently loaned books
-    const loanedCount = book.stock - calculateAvailableStock();
-    
-    // Cannot decrease stock below the number of currently loaned books
-    if (book.stock - 1 < loanedCount) {
-      alert('현재 대출 중인 도서가 있어 재고를 줄일 수 없습니다.');
+    if (book.stock <= 0) {
+      alert('재고가 0권입니다.');
       return;
     }
     
@@ -166,36 +160,50 @@ export function BookDetailDialog({ book, currentUser, loans, onClose, onUpdateBo
     });
   };
 
+  // Check if user has purchased this book
+  const userPurchases = purchases.filter(p => p.bookId === book.id && p.userId === currentUser.id);
+  const hasPurchased = userPurchases.length > 0;
+
+  // Handle purchase
+  const handlePurchase = () => {
+    if (onPurchaseBook && purchaseQuantity > 0 && book.stock >= purchaseQuantity) {
+      onPurchaseBook(book.id, purchaseQuantity);
+      setPurchaseQuantity(1); // Reset to 1 after purchase
+    } else if (book.stock < purchaseQuantity) {
+      alert(`재고가 부족합니다. (현재 재고: ${book.stock}권)`);
+    }
+  };
+
+  // Handle cancel purchase
+  const handleCancelPurchase = () => {
+    if (userPurchases.length > 0 && onCancelPurchase && cancelQuantity > 0) {
+      if (cancelQuantity > userPurchases.length) {
+        alert(`취소할 수 있는 수량을 초과했습니다. (구매한 수량: ${userPurchases.length}권)`);
+        return;
+      }
+      
+      if (confirm(`${cancelQuantity}권의 구매를 취소하시겠습니까?`)) {
+        const sortedPurchases = userPurchases.sort((a, b) => 
+          new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime()
+        );
+        const purchaseIdsToCancel = sortedPurchases.slice(0, cancelQuantity).map(p => p.id);
+        onCancelPurchase(purchaseIdsToCancel);
+        setCancelQuantity(1); // Reset to 1 after cancel
+      }
+    }
+  };
+
   const averageRating = calculateAverageRating();
-  const availableStock = calculateAvailableStock();
-  
-  // Check if current user has active loan for this book
-  const userActiveLoans = loans.filter(l => l.bookId === book.id && l.userId === currentUser.id && !l.returnDate);
-  const hasActiveLoan = userActiveLoans.length > 0;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <BookOpen className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <h2 className="text-gray-900">도서 상세 정보</h2>
-              <p className="text-sm text-gray-500">
-                {averageRating > 0 && (
-                  <span className="inline-flex items-center gap-1">
-                    <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                    <span>{averageRating.toFixed(1)}</span>
-                    <span className="text-gray-400">({book.ratings.length}명 평가)</span>
-                  </span>
-                )}
-                {averageRating === 0 && <span>아직 평가가 없습니다</span>}
-              </p>
-            </div>
-          </div>
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
+          <h2 className="text-gray-900 flex items-center gap-2">
+            <BookOpen className="w-6 h-6 text-blue-600" />
+            도서 상세 정보
+          </h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -205,138 +213,238 @@ export function BookDetailDialog({ book, currentUser, loans, onClose, onUpdateBo
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
-          <div className="flex gap-6 mb-6">
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             {/* Book Cover */}
-            <div className="flex-shrink-0">
+            <div className="md:col-span-1">
               <img
                 src={book.coverImage}
                 alt={book.title}
-                className="w-48 h-72 object-cover rounded-lg shadow-lg"
+                className="w-full rounded-lg shadow-md"
               />
             </div>
 
-            {/* Book Information */}
-            <div className="flex-1 space-y-4">
-              {/* Title and Genre */}
-              <div>
-                <div className="flex items-start justify-between mb-2">
-                  <h3 className="text-2xl text-gray-900">{book.title}</h3>
-                  <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
-                    {book.genre}
-                  </span>
-                </div>
-                <p className="text-lg text-gray-600">{book.author}</p>
-              </div>
-
-              {/* Description */}
-              <div className="pt-4 border-t border-gray-200">
-                <h4 className="text-sm text-gray-700 mb-2">설명</h4>
-                <p className="text-gray-600 leading-relaxed">{book.description}</p>
-              </div>
-
-              {/* Details */}
-              <div className="pt-4 border-t border-gray-200 space-y-3">
-                <h4 className="text-sm text-gray-700 mb-3">도서 정보</h4>
-                
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <Calendar className="w-4 h-4" />
-                    <span className="text-sm">출판연도</span>
-                  </div>
-                  <span className="text-gray-900">{book.publishedYear}년</span>
-                </div>
-
-                {book.isbn && (
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <Hash className="w-4 h-4" />
-                      <span className="text-sm">ISBN</span>
-                    </div>
-                    <span className="text-gray-900">{book.isbn}</span>
-                  </div>
-                )}
-
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <Tag className="w-4 h-4" />
-                    <span className="text-sm">장르</span>
-                  </div>
-                  <span className="text-gray-900">{book.genre}</span>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2 text-gray-600">
+            {/* Book Details */}
+            <div className="md:col-span-2">
+              <div className="mb-4">
+                <h3 className="text-gray-900 mb-2">{book.title}</h3>
+                <div className="flex items-center gap-4 text-sm text-gray-600">
+                  <div className="flex items-center gap-1">
                     <UserIcon className="w-4 h-4" />
-                    <span className="text-sm">등록자</span>
+                    {book.author}
                   </div>
-                  <span className="text-gray-900">{book.createdBy}</span>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2 text-gray-600">
+                  <div className="flex items-center gap-1">
                     <Calendar className="w-4 h-4" />
-                    <span className="text-sm">등록일</span>
+                    {book.publishedYear}년
                   </div>
-                  <span className="text-gray-900">{formatDate(book.createdAt)}</span>
+                  <div className="flex items-center gap-1">
+                    <Tag className="w-4 h-4" />
+                    {book.genre}
+                  </div>
                 </div>
+              </div>
+
+              {book.isbn && (
+                <div className="mb-4 flex items-center gap-2 text-sm text-gray-600">
+                  <Hash className="w-4 h-4" />
+                  <span>ISBN: {book.isbn}</span>
+                </div>
+              )}
+
+              <div className="mb-6">
+                <h4 className="text-sm text-gray-700 mb-2">책 소개</h4>
+                <p className="text-sm text-gray-600 leading-relaxed">{book.description}</p>
               </div>
             </div>
           </div>
 
-          {/* Rating Section */}
-          <div className="border-t border-gray-200 pt-6">
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="text-gray-900 flex items-center gap-2">
-                <Star className="w-5 h-5 text-yellow-500" />
-                평가하기
-              </h4>
-              {userRating && (
-                <span className="text-sm text-gray-500">
-                  내 평가: {currentRating}점
-                </span>
-              )}
-            </div>
-            
-            <div className="flex items-center gap-2">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  onClick={() => handleRating(star)}
-                  onMouseEnter={() => setHoverRating(star)}
-                  onMouseLeave={() => setHoverRating(0)}
-                  className="p-1 transition-transform hover:scale-110"
-                >
-                  <Star
-                    className={`w-8 h-8 ${
-                      star <= (hoverRating || currentRating)
-                        ? 'text-yellow-500 fill-yellow-500'
-                        : 'text-gray-300'
-                    }`}
-                  />
-                </button>
-              ))}
-              <span className="ml-2 text-sm text-gray-600">
-                {hoverRating > 0 ? `${hoverRating}점` : currentRating > 0 ? `${currentRating}점 평가됨` : '별을 클릭하여 평가하세요'}
-              </span>
+          {/* Centered Ratings and Purchase Section */}
+          <div className="space-y-4">
+            {/* Average Rating Display */}
+            <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+              <h4 className="text-sm text-gray-700 mb-3 text-center">평균 평점</h4>
+              <div className="flex flex-col items-center gap-2">
+                <div className="flex gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      className={`w-6 h-6 ${
+                        star <= Math.round(averageRating)
+                          ? 'text-yellow-500 fill-yellow-500'
+                          : 'text-gray-300'
+                      }`}
+                    />
+                  ))}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xl text-gray-900">
+                    {averageRating > 0 ? averageRating.toFixed(1) : '평점 없음'}
+                  </span>
+                  <span className="text-sm text-gray-500">
+                    ({book.ratings.length}명 평가)
+                  </span>
+                </div>
+              </div>
             </div>
 
-            {book.ratings.length > 0 && (
-              <div className="mt-4 bg-gray-50 rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div>
-                      <div className="flex items-center gap-1">
-                        <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
-                        <span className="text-2xl text-gray-900">{averageRating.toFixed(1)}</span>
+            {/* User Rating Section */}
+            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <h4 className="text-sm text-gray-700 mb-3 text-center">내 평점</h4>
+              <div className="flex flex-col items-center gap-2">
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      onClick={() => handleRating(star)}
+                      onMouseEnter={() => setHoverRating(star)}
+                      onMouseLeave={() => setHoverRating(0)}
+                      className="transition-transform hover:scale-110"
+                    >
+                      <Star
+                        className={`w-8 h-8 ${
+                          star <= (hoverRating || currentRating)
+                            ? 'text-yellow-500 fill-yellow-500'
+                            : 'text-gray-300'
+                        }`}
+                      />
+                    </button>
+                  ))}
+                </div>
+                {currentRating > 0 && (
+                  <span className="text-sm text-gray-600">
+                    {currentRating}점
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Purchase Section - For non-admin users */}
+            {onPurchaseBook && onCancelPurchase && currentUser.role !== 'admin' && (
+              <div className="p-4 bg-white rounded-lg border border-gray-200">
+                <h4 className="text-gray-900 mb-4 flex items-center justify-center gap-2">
+                  <ShoppingCart className="w-5 h-5 text-blue-600" />
+                  구매하기
+                </h4>
+
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="p-3 bg-gray-50 rounded-lg text-center">
+                    <p className="text-sm text-gray-600 mb-1">재고</p>
+                    <p className={`text-2xl ${book.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {book.stock}권
+                    </p>
+                  </div>
+                  <div className="p-3 bg-green-50 rounded-lg text-center">
+                    <p className="text-sm text-gray-600 mb-1">내 구매</p>
+                    <p className="text-2xl text-green-600">{userPurchases.length}권</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Purchase Section */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-center gap-3 p-3 bg-blue-50 rounded-lg">
+                      <button
+                        onClick={() => setPurchaseQuantity(Math.max(1, purchaseQuantity - 1))}
+                        className="p-2 bg-white border border-blue-300 rounded-lg hover:bg-blue-100 transition-colors"
+                      >
+                        <Minus className="w-4 h-4 text-blue-600" />
+                      </button>
+                      <div className="text-center min-w-[60px]">
+                        <p className="text-2xl text-blue-600">{purchaseQuantity}</p>
+                        <p className="text-xs text-gray-600">수량</p>
                       </div>
-                      <p className="text-sm text-gray-500">평균 평점</p>
+                      <button
+                        onClick={() => setPurchaseQuantity(Math.min(book.stock, purchaseQuantity + 1))}
+                        disabled={purchaseQuantity >= book.stock}
+                        className="p-2 bg-white border border-blue-300 rounded-lg hover:bg-blue-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Plus className="w-4 h-4 text-blue-600" />
+                      </button>
                     </div>
+                    <button
+                      onClick={handlePurchase}
+                      disabled={book.stock <= 0 || purchaseQuantity > book.stock}
+                      className={`w-full py-3 rounded-lg transition-colors flex items-center justify-center gap-2 ${
+                        book.stock > 0 && purchaseQuantity <= book.stock
+                          ? 'bg-blue-600 text-white hover:bg-blue-700'
+                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      }`}
+                    >
+                      <ShoppingCart className="w-5 h-5" />
+                      {book.stock > 0 ? '구매하기' : '재고 없음'}
+                    </button>
                   </div>
-                  <div>
-                    <p className="text-2xl text-gray-900">{book.ratings.length}</p>
-                    <p className="text-sm text-gray-500">명 평가</p>
+
+                  {/* Cancel Section */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-center gap-3 p-3 bg-red-50 rounded-lg">
+                      <button
+                        onClick={() => setCancelQuantity(Math.max(1, cancelQuantity - 1))}
+                        className="p-2 bg-white border border-red-300 rounded-lg hover:bg-red-100 transition-colors"
+                      >
+                        <Minus className="w-4 h-4 text-red-600" />
+                      </button>
+                      <div className="text-center min-w-[60px]">
+                        <p className="text-2xl text-red-600">{cancelQuantity}</p>
+                        <p className="text-xs text-gray-600">수량</p>
+                      </div>
+                      <button
+                        onClick={() => setCancelQuantity(Math.min(userPurchases.length, cancelQuantity + 1))}
+                        disabled={cancelQuantity >= userPurchases.length}
+                        className="p-2 bg-white border border-red-300 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Plus className="w-4 h-4 text-red-600" />
+                      </button>
+                    </div>
+                    <button
+                      onClick={handleCancelPurchase}
+                      disabled={userPurchases.length === 0}
+                      className={`w-full py-3 rounded-lg transition-colors flex items-center justify-center gap-2 ${
+                        userPurchases.length > 0
+                          ? 'bg-red-600 text-white hover:bg-red-700'
+                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      }`}
+                    >
+                      <XCircle className="w-5 h-5" />
+                      구매 취소
+                    </button>
                   </div>
+                </div>
+
+                {hasPurchased && (
+                  <p className="text-sm text-green-600 text-center mt-3">
+                    ✓ 이미 구매한 도서입니다 ({userPurchases.length}권)
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Stock Management Section - For admin users */}
+            {currentUser.role === 'admin' && (
+              <div className="p-4 bg-white rounded-lg border border-gray-200">
+                <h4 className="text-gray-900 mb-4 flex items-center justify-center gap-2">
+                  <Package className="w-5 h-5 text-purple-600" />
+                  재고 관리
+                </h4>
+
+                <div className="flex items-center justify-center gap-6 p-4 bg-purple-50 rounded-lg">
+                  <button
+                    onClick={handleDecreaseStock}
+                    className="p-3 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={book.stock <= 0}
+                  >
+                    <Minus className="w-6 h-6" />
+                  </button>
+                  <div className="text-center min-w-[120px]">
+                    <p className="text-4xl text-gray-900">{book.stock}</p>
+                    <p className="text-sm text-gray-600 mt-1">현재 재고</p>
+                  </div>
+                  <button
+                    onClick={handleIncreaseStock}
+                    className="p-3 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors"
+                  >
+                    <Plus className="w-6 h-6" />
+                  </button>
                 </div>
               </div>
             )}
@@ -356,13 +464,14 @@ export function BookDetailDialog({ book, currentUser, loans, onClose, onUpdateBo
                   type="text"
                   value={reviewText}
                   onChange={(e) => setReviewText(e.target.value)}
-                  placeholder="이 책에 대한 한줄평을 남겨주세요..."
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
                       handleSubmitReview();
                     }
                   }}
+                  placeholder="한줄평을 작성해주세요..."
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
                 <button
                   onClick={handleSubmitReview}
@@ -370,29 +479,27 @@ export function BookDetailDialog({ book, currentUser, loans, onClose, onUpdateBo
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   <Send className="w-4 h-4" />
-                  등록
+                  작성
                 </button>
               </div>
             </div>
 
             {/* Reviews List */}
-            <div className="space-y-3 max-h-60 overflow-y-auto">
+            <div className="space-y-3">
               {book.reviews.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <MessageSquare className="w-12 h-12 mx-auto mb-2 text-gray-400" />
-                  <p>아직 한줄평이 없습니다.</p>
-                  <p className="text-sm">첫 번째 한줄평을 남겨보세요!</p>
-                </div>
+                <p className="text-center text-gray-500 py-8">
+                  아직 작성된 한줄평이 없습니다.
+                </p>
               ) : (
                 book.reviews.map((review) => (
                   <div
                     key={review.id}
-                    className="bg-gray-50 rounded-lg p-4 border border-gray-200"
+                    className="p-4 bg-gray-50 rounded-lg border border-gray-200"
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                          <UserIcon className="w-4 h-4 text-white" />
+                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                          <UserIcon className="w-4 h-4 text-blue-600" />
                         </div>
                         <div>
                           <p className="text-sm text-gray-900">{review.userId}</p>
@@ -401,167 +508,62 @@ export function BookDetailDialog({ book, currentUser, loans, onClose, onUpdateBo
                           </p>
                         </div>
                       </div>
-                      {review.userId === currentUser.id && (
-                        <div className="flex items-center gap-2">
+                      {review.userId === currentUser.id && editingReviewId !== review.id && (
+                        <div className="flex gap-1">
                           <button
                             onClick={() => handleEditReview(review.id)}
-                            className="p-1 text-gray-500 hover:text-gray-700"
+                            className="p-1 hover:bg-gray-200 rounded transition-colors"
                           >
-                            <Edit2 className="w-4 h-4" />
+                            <Edit2 className="w-4 h-4 text-gray-600" />
                           </button>
                           <button
                             onClick={() => handleDeleteReview(review.id)}
-                            className="p-1 text-gray-500 hover:text-gray-700"
+                            className="p-1 hover:bg-gray-200 rounded transition-colors"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-4 h-4 text-red-600" />
                           </button>
                         </div>
                       )}
                     </div>
+                    
                     {editingReviewId === review.id ? (
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 mt-2">
                         <input
                           type="text"
                           value={editingReviewText}
                           onChange={(e) => setEditingReviewText(e.target.value)}
-                          placeholder="한줄평을 수정하세요..."
-                          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
-                              handleUpdateReview();
+                              e.preventDefault();
+                              handleUpdateReview(review.id);
+                            } else if (e.key === 'Escape') {
+                              handleCancelEdit();
                             }
                           }}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                          autoFocus
                         />
                         <button
-                          onClick={handleUpdateReview}
-                          disabled={!editingReviewText.trim()}
-                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                          onClick={() => handleUpdateReview(review.id)}
+                          className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors"
                         >
                           <Check className="w-4 h-4" />
-                          수정
                         </button>
                         <button
-                          onClick={() => setEditingReviewId(null)}
-                          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                          onClick={handleCancelEdit}
+                          className="p-2 bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300 transition-colors"
                         >
                           <XCircle className="w-4 h-4" />
-                          취소
                         </button>
                       </div>
                     ) : (
-                      <p className="text-gray-700 ml-10">{review.comment}</p>
+                      <p className="text-sm text-gray-700">{review.comment}</p>
                     )}
                   </div>
                 ))
               )}
             </div>
           </div>
-
-          {/* Loan Section */}
-          {onLoanBook && onReturnBook && currentUser.role !== 'admin' && (
-            <div className="border-t border-gray-200 pt-6 mt-6">
-              <h4 className="text-gray-900 mb-4 flex items-center gap-2">
-                <Package className="w-5 h-5 text-blue-600" />
-                대출 관리
-              </h4>
-
-              {hasOverdueLoans && (
-                <div className="mb-4 p-3 bg-red-100 border border-red-300 rounded-lg text-red-700 text-sm">
-                  ⚠️ 연체된 도서가 있어 대출이 불가능합니다. 먼저 반납해주세요.
-                </div>
-              )}
-
-              <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">잔여 재고</p>
-                    <p className="text-2xl text-blue-600">{availableStock}권</p>
-                  </div>
-                  {hasActiveLoan && (
-                    <div>
-                      <p className="text-sm text-gray-600">내 대출</p>
-                      <p className="text-2xl text-green-600">{userActiveLoans.length}권</p>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex gap-2 pt-3 border-t border-gray-200">
-                  <button
-                    onClick={() => onLoanBook(book.id)}
-                    disabled={hasOverdueLoans || availableStock <= 0}
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    <Plus className="w-4 h-4" />
-                    대출하기
-                  </button>
-                  {hasActiveLoan && (
-                    <button
-                      onClick={() => onReturnBook(userActiveLoans[0].id)}
-                      className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Minus className="w-4 h-4" />
-                      대출 취소 (1권)
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Stock Management Section - Admin Only */}
-          {currentUser.role === 'admin' && (
-            <div className="border-t border-gray-200 pt-6 mt-6">
-              <h4 className="text-gray-900 mb-4 flex items-center gap-2">
-                <Package className="w-5 h-5 text-blue-600" />
-                재고 관리
-              </h4>
-
-              <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">총 재고</p>
-                    <p className="text-2xl text-gray-900">{book.stock}권</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">대출 중</p>
-                    <p className="text-2xl text-gray-900">{book.stock - availableStock}권</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">잔여 재고</p>
-                    <p className="text-2xl text-blue-600">{availableStock}권</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 pt-3 border-t border-gray-200">
-                  <button
-                    onClick={handleDecreaseStock}
-                    disabled={book.stock <= 0 || availableStock <= 0}
-                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    <Minus className="w-4 h-4" />
-                    재고 감소
-                  </button>
-                  <button
-                    onClick={handleIncreaseStock}
-                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
-                  >
-                    <Plus className="w-4 h-4" />
-                    재고 증가
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 flex justify-end">
-          <button
-            onClick={onClose}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            닫기
-          </button>
         </div>
       </div>
     </div>

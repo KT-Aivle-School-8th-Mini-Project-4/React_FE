@@ -1,4 +1,4 @@
-import { Book, Loan } from '../App';
+import { Book, Purchase } from '../App';
 import { Calendar, Check, Star, Package } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 
@@ -8,10 +8,10 @@ interface BookCardProps {
   onSelect: (id: string) => void;
   onBookClick: (book: Book) => void;
   isSelectionMode: boolean;
-  loans: Loan[];
+  purchases: Purchase[];
 }
 
-export function BookCard({ book, isSelected, onSelect, onBookClick, isSelectionMode, loans }: BookCardProps) {
+export function BookCard({ book, isSelected, onSelect, onBookClick, isSelectionMode, purchases }: BookCardProps) {
   const handleClick = () => {
     if (isSelectionMode) {
       onSelect(book.id);
@@ -27,16 +27,7 @@ export function BookCard({ book, isSelected, onSelect, onBookClick, isSelectionM
     return sum / book.ratings.length;
   };
 
-  // Calculate available stock (total stock - currently loaned books)
-  const calculateAvailableStock = () => {
-    const currentlyLoaned = loans.filter(
-      (loan: Loan) => loan.bookId === book.id && !loan.returnDate
-    ).length;
-    return book.stock - currentlyLoaned;
-  };
-
   const averageRating = calculateAverageRating();
-  const availableStock = calculateAvailableStock();
 
   return (
     <div 
@@ -89,7 +80,7 @@ export function BookCard({ book, isSelected, onSelect, onBookClick, isSelectionM
             </div>
             <div className="flex items-center gap-1">
               <Package className="w-3 h-3" />
-              재고 {availableStock}권
+              재고 {book.stock}권
             </div>
           </div>
           {averageRating > 0 && (

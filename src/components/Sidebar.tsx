@@ -1,15 +1,12 @@
 import { Book } from '../App';
-import { BarChart3, Filter, X, BookMarked, TrendingUp, ChevronDown, PackageCheck, PackageX, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
+import { BarChart3, Filter, X, BookMarked, TrendingUp, ChevronDown, PackageCheck, PackageX, Clock, CheckCircle2, AlertCircle, ShoppingCart } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-export interface Loan {
+export interface Purchase {
   id: string;
   bookId: string;
   userId: string;
-  loanDate: Date;
-  dueDate: Date;
-  returnDate?: Date;
-  extended: boolean;
+  purchaseDate: Date;
 }
 
 export interface User {
@@ -20,7 +17,7 @@ export interface User {
 
 interface SidebarProps {
   books: Book[];
-  loans: Loan[];
+  purchases: Purchase[];
   currentUser: User | null;
   isOpen: boolean;
   selectedGenre: string;
@@ -32,7 +29,7 @@ interface SidebarProps {
 
 export function Sidebar({
   books,
-  loans,
+  purchases,
   currentUser,
   isOpen,
   selectedGenre,
@@ -42,26 +39,8 @@ export function Sidebar({
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [isDistributionOpen, setIsDistributionOpen] = useState(false);
   const [isStatsOpen, setIsStatsOpen] = useState(false);
-  const [isLoanStatsOpen, setIsLoanStatsOpen] = useState(false);
   const [isInventoryStatsOpen, setIsInventoryStatsOpen] = useState(false);
-
-  // Calculate loan statistics
-  const loanStats = useMemo(() => {
-    const now = new Date();
-    const activeLoansList = loans.filter(loan => !loan.returnDate);
-    const returnedLoansList = loans.filter(loan => loan.returnDate);
-    const overdueLoansList = activeLoansList.filter(loan => {
-      const dueDate = new Date(loan.dueDate);
-      return dueDate < now;
-    });
-
-    return {
-      activeLoans: activeLoansList.length,
-      returnedLoans: returnedLoansList.length,
-      overdueLoans: overdueLoansList.length,
-      totalLoans: loans.length
-    };
-  }, [loans]);
+  const [isSalesStatsOpen, setIsSalesStatsOpen] = useState(false);
 
   // Calculate inventory statistics
   const inventoryStats = useMemo(() => {
@@ -148,23 +127,45 @@ export function Sidebar({
     };
   }, [books]);
 
+  // Calculate sales statistics by genre
+  const salesStats = useMemo(() => {
+    const genreSales: Record<string, number> = {};
+    
+    purchases.forEach(purchase => {
+      const book = books.find(b => b.id === purchase.bookId);
+      if (book) {
+        genreSales[book.genre] = (genreSales[book.genre] || 0) + 1;
+      }
+    });
+
+    const sortedGenreSales = Object.entries(genreSales)
+      .sort((a, b) => b[1] - a[1]);
+
+    const totalSales = purchases.length;
+
+    return {
+      genreSales: sortedGenreSales,
+      totalSales
+    };
+  }, [books, purchases]);
+
   const genres = ['전체', '소설', 'SF', '판타지', '미스터리', '로맨스', '자기계발', '에세이', '역사', '과학', '기타'];
 
   return (
     <>
-      {/* Overlay - Only for closing sidebar when clicking outside */}
+      {/* Overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-30 mt-[64px]"
+          className="fixed inset-0 bg-black bg-opacity-50 z-30"
           onClick={onClose}
         />
       )}
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-[64px] left-0 h-[calc(100vh-64px)] bg-white border-r border-gray-200 shadow-xl transition-transform duration-300 z-40 ${
+        className={`fixed top-[65px] left-0 h-[calc(100vh-65px)] w-80 bg-white shadow-lg transform transition-transform duration-300 ease-in-out z-40 overflow-y-auto ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
-        } w-80 flex flex-col`}
+        }`}
       >
         {/* Sidebar Header */}
         <div className="p-6 border-b border-gray-200 flex items-center justify-between">
@@ -242,63 +243,6 @@ export function Sidebar({
             </div>
           </div>
 
-          {/* Loan Statistics */}
-          {currentUser?.role === 'admin' && (
-            <div>
-              <button
-                onClick={() => setIsLoanStatsOpen(!isLoanStatsOpen)}
-                className="w-full flex items-center justify-between mb-3 p-2 hover:bg-gray-50 rounded-lg transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4 text-blue-600" />
-                  <h3 className="text-sm text-gray-700">대출 통계</h3>
-                </div>
-                <ChevronDown
-                  className={`w-4 h-4 text-gray-500 transition-transform ${
-                    isLoanStatsOpen ? 'rotate-180' : ''
-                  }`}
-                />
-              </button>
-              <div
-                className={`space-y-3 overflow-hidden transition-all duration-300 ${
-                  isLoanStatsOpen ? 'max-h-[400px] opacity-100' : 'max-h-0 opacity-0'
-                }`}
-              >
-                <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm text-green-700">활성 대출</span>
-                    <PackageCheck className="w-4 h-4 text-green-600" />
-                  </div>
-                  <p className="text-green-900">{loanStats.activeLoans}건</p>
-                </div>
-
-                <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg p-4 border border-red-200">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm text-red-700">연체 대출</span>
-                    <PackageX className="w-4 h-4 text-red-600" />
-                  </div>
-                  <p className="text-red-900">{loanStats.overdueLoans}건</p>
-                </div>
-
-                <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-4 border border-gray-200">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm text-gray-700">반납된 대출</span>
-                    <CheckCircle2 className="w-4 h-4 text-gray-600" />
-                  </div>
-                  <p className="text-gray-900">{loanStats.returnedLoans}건</p>
-                </div>
-
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm text-blue-700">총 대출</span>
-                    <Clock className="w-4 h-4 text-blue-600" />
-                  </div>
-                  <p className="text-blue-900">{loanStats.totalLoans}건</p>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Inventory Statistics */}
           {currentUser?.role === 'admin' && (
             <div>
@@ -352,6 +296,55 @@ export function Sidebar({
                   </div>
                   <p className="text-blue-900">{inventoryStats.totalStock}권</p>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Sales Statistics by Genre */}
+          {currentUser?.role === 'admin' && salesStats.totalSales > 0 && (
+            <div>
+              <button
+                onClick={() => setIsSalesStatsOpen(!isSalesStatsOpen)}
+                className="w-full flex items-center justify-between mb-3 p-2 hover:bg-gray-50 rounded-lg transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <ShoppingCart className="w-4 h-4 text-green-600" />
+                  <h3 className="text-sm text-gray-700">장르별 판매량</h3>
+                </div>
+                <ChevronDown
+                  className={`w-4 h-4 text-gray-500 transition-transform ${
+                    isSalesStatsOpen ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+              <div
+                className={`space-y-2 overflow-hidden transition-all duration-300 ${
+                  isSalesStatsOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
+                }`}
+              >
+                <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-3 border border-green-200 mb-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-green-700">총 판매량</span>
+                    <span className="text-xl text-green-900">{salesStats.totalSales}건</span>
+                  </div>
+                </div>
+                {salesStats.genreSales.map(([genre, sales]) => {
+                  const percentage = (sales / salesStats.totalSales) * 100;
+                  return (
+                    <div key={genre}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-gray-600">{genre}</span>
+                        <span className="text-xs text-gray-500">{sales}건 ({percentage.toFixed(1)}%)</span>
+                      </div>
+                      <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-green-500 to-green-600 rounded-full transition-all duration-500"
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
