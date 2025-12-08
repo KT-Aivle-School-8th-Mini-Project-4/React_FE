@@ -1,4 +1,4 @@
-import { EditRecord, DeleteRecord } from '../App';
+import { EditRecord, DeleteRecord } from '../types.tsx';
 import { X, RotateCcw, Edit3, Trash2, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 

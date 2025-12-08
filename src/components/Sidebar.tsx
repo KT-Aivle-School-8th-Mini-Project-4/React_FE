@@ -1,16 +1,6 @@
-import { Book } from '../App';
+import { Book } from '../types.tsx';
 import { BarChart3, Filter, X, BookMarked, TrendingUp, ChevronDown, PackageCheck, PackageX, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useMemo, useState } from 'react';
-
-export interface Loan {
-  id: string;
-  bookId: string;
-  userId: string;
-  loanDate: Date;
-  dueDate: Date;
-  returnDate?: Date;
-  extended: boolean;
-}
 
 export interface User {
   id: string;
@@ -20,7 +10,6 @@ export interface User {
 
 interface SidebarProps {
   books: Book[];
-  loans: Loan[];
   currentUser: User | null;
   isOpen: boolean;
   selectedGenre: string;
@@ -32,7 +21,6 @@ interface SidebarProps {
 
 export function Sidebar({
   books,
-  loans,
   currentUser,
   isOpen,
   selectedGenre,
@@ -42,26 +30,8 @@ export function Sidebar({
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [isDistributionOpen, setIsDistributionOpen] = useState(false);
   const [isStatsOpen, setIsStatsOpen] = useState(false);
-  const [isLoanStatsOpen, setIsLoanStatsOpen] = useState(false);
   const [isInventoryStatsOpen, setIsInventoryStatsOpen] = useState(false);
 
-  // Calculate loan statistics
-  const loanStats = useMemo(() => {
-    const now = new Date();
-    const activeLoansList = loans.filter(loan => !loan.returnDate);
-    const returnedLoansList = loans.filter(loan => loan.returnDate);
-    const overdueLoansList = activeLoansList.filter(loan => {
-      const dueDate = new Date(loan.dueDate);
-      return dueDate < now;
-    });
-
-    return {
-      activeLoans: activeLoansList.length,
-      returnedLoans: returnedLoansList.length,
-      overdueLoans: overdueLoansList.length,
-      totalLoans: loans.length
-    };
-  }, [loans]);
 
   // Calculate inventory statistics
   const inventoryStats = useMemo(() => {
@@ -241,63 +211,6 @@ export function Sidebar({
               </div>
             </div>
           </div>
-
-          {/* Loan Statistics */}
-          {currentUser?.role === 'admin' && (
-            <div>
-              <button
-                onClick={() => setIsLoanStatsOpen(!isLoanStatsOpen)}
-                className="w-full flex items-center justify-between mb-3 p-2 hover:bg-gray-50 rounded-lg transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4 text-blue-600" />
-                  <h3 className="text-sm text-gray-700">대출 통계</h3>
-                </div>
-                <ChevronDown
-                  className={`w-4 h-4 text-gray-500 transition-transform ${
-                    isLoanStatsOpen ? 'rotate-180' : ''
-                  }`}
-                />
-              </button>
-              <div
-                className={`space-y-3 overflow-hidden transition-all duration-300 ${
-                  isLoanStatsOpen ? 'max-h-[400px] opacity-100' : 'max-h-0 opacity-0'
-                }`}
-              >
-                <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm text-green-700">활성 대출</span>
-                    <PackageCheck className="w-4 h-4 text-green-600" />
-                  </div>
-                  <p className="text-green-900">{loanStats.activeLoans}건</p>
-                </div>
-
-                <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg p-4 border border-red-200">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm text-red-700">연체 대출</span>
-                    <PackageX className="w-4 h-4 text-red-600" />
-                  </div>
-                  <p className="text-red-900">{loanStats.overdueLoans}건</p>
-                </div>
-
-                <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-4 border border-gray-200">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm text-gray-700">반납된 대출</span>
-                    <CheckCircle2 className="w-4 h-4 text-gray-600" />
-                  </div>
-                  <p className="text-gray-900">{loanStats.returnedLoans}건</p>
-                </div>
-
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm text-blue-700">총 대출</span>
-                    <Clock className="w-4 h-4 text-blue-600" />
-                  </div>
-                  <p className="text-blue-900">{loanStats.totalLoans}건</p>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Inventory Statistics */}
           {currentUser?.role === 'admin' && (
