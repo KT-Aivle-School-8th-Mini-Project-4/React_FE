@@ -35,7 +35,7 @@ export default function App() {
     // 도서 목록 불러오기 (API)
     const fetchBooks = async () => {
         try {
-            const data: Book[] = await apiFetch('/book');
+            const data: Book[] = await apiFetch('/book/all');
 
             // 날짜 변환 등 데이터 전처리
             const parsedData = data.map((b: any) => ({

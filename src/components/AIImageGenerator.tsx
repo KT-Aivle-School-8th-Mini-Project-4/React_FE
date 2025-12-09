@@ -32,7 +32,7 @@ export function AIImageGenerator({ bookId, bookTitle, bookGenre, bookDescription
 
     // API Key 입력 핸들러
     const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const newKey = e.target.value;
+        const newKey = e.target.value.trim();
         setApiKey(newKey);
         localStorage.setItem('openai_api_key', newKey);
     };
@@ -57,7 +57,7 @@ export function AIImageGenerator({ bookId, bookTitle, bookGenre, bookDescription
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "Authorization": `Bearer ${apiKey}`
+                    "Authorization": `Bearer ${apiKey.trim()}`
                 },
                 body: JSON.stringify({
                     model: "gpt-4o-mini", // gpt-3.5-turbo 사용 가능
@@ -135,6 +135,7 @@ export function AIImageGenerator({ bookId, bookTitle, bookGenre, bookDescription
         // 수정 모드(bookId 있음)일 때만 즉시 저장
         if (bookId) {
             try {
+                // [수정] API 명세 반영: PATCH /book/{bookId}
                 const response = await fetch(`http://localhost:8080/book/${bookId}`, {
                     method: "PATCH",
                     headers: { "Content-Type": "application/json" },
@@ -142,13 +143,13 @@ export function AIImageGenerator({ bookId, bookTitle, bookGenre, bookDescription
                 });
 
                 if (!response.ok) {
-                    // throw new Error("서버 저장 실패");
                     console.warn("서버 저장 실패 (테스트 환경일 수 있음)");
                 } else {
                     alert("표지가 성공적으로 저장되었습니다!");
                 }
             } catch (error) {
                 console.error("표지 저장 오류:", error);
+                alert("표지 저장 중 오류가 발생했습니다.");
             }
         }
 
