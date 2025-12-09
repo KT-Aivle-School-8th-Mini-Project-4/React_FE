@@ -10,7 +10,7 @@ interface BookInventoryDialogProps {
 }
 
 // 정렬 기준 변경 (대출 관련 제거 -> 판매/매출 관련 추가)
-type SortField = 'title' | 'author' | 'genre' | 'isbn' | 'stock' | 'totalSold' | 'totalRevenue';
+type SortField = 'title' | 'author' | 'category' | 'isbn' | 'stock' | 'totalSold' | 'totalRevenue';
 type SortDirection = 'asc' | 'desc';
 
 export function BookInventoryDialog({ books, orders, onClose, onEditBook }: BookInventoryDialogProps) {
@@ -44,7 +44,7 @@ export function BookInventoryDialog({ books, orders, onClose, onEditBook }: Book
         return (
             book.title.toLowerCase().includes(query) ||
             book.author.toLowerCase().includes(query) ||
-            book.genre.toLowerCase().includes(query) ||
+            book.category.toLowerCase().includes(query) ||
             (book.isbn && book.isbn.toLowerCase().includes(query))
         );
     });
@@ -171,8 +171,8 @@ export function BookInventoryDialog({ books, orders, onClose, onEditBook }: Book
                                 <tr>
                                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">도서 정보</th>
                                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">
-                                        <button className="flex items-center gap-1 hover:text-gray-900" onClick={() => handleSort('genre')}>
-                                            장르 {sortBy === 'genre' && (sortDirection === 'asc' ? <ChevronUp className="w-4 h-4"/> : <ChevronDown className="w-4 h-4"/>)}
+                                        <button className="flex items-center gap-1 hover:text-gray-900" onClick={() => handleSort('category')}>
+                                            장르 {sortBy === 'category' && (sortDirection === 'asc' ? <ChevronUp className="w-4 h-4"/> : <ChevronDown className="w-4 h-4"/>)}
                                         </button>
                                     </th>
                                     <th className="px-4 py-3 text-center text-sm font-semibold text-gray-600">
@@ -213,7 +213,7 @@ export function BookInventoryDialog({ books, orders, onClose, onEditBook }: Book
                                         {/* 장르 */}
                                         <td className="px-4 py-3">
                         <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-md">
-                          {book.genre}
+                          {book.category}
                         </span>
                                         </td>
 

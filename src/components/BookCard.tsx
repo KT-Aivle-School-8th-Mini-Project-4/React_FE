@@ -65,7 +65,7 @@ export function BookCard({ book, isSelected, onSelect, onBookClick, isSelectionM
                     className="w-full h-full object-cover"
                 />
                 <div className="absolute top-1 right-1 bg-blue-600 text-white px-1.5 py-0.5 rounded text-[10px]">
-                    {book.genre}
+                    {book.category}
                 </div>
             </div>
 

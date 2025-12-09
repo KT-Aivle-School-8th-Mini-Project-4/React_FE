@@ -35,7 +35,9 @@ export default function App() {
     // 도서 목록 불러오기 (API)
     const fetchBooks = async () => {
         try {
-            const data: Book[] = await apiFetch('/book/all');
+            const response: any = await apiFetch('/book/all');
+            const data = response.books ?? [];
+
 
             // 날짜 변환 등 데이터 전처리
             const parsedData = data.map((b: any) => ({
@@ -90,7 +92,7 @@ export default function App() {
 
     // 필터 상태
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedGenre, setSelectedGenre] = useState('전체');
+    const [selectedcategory, setSelectedcategory] = useState('전체');
     const [sortBy, setSortBy] = useState<'title' | 'year' | 'author'>('title');
 
     // 페이지네이션
@@ -268,8 +270,8 @@ export default function App() {
             const matchesSearch = book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 book.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 book.description.toLowerCase().includes(searchQuery.toLowerCase());
-            const matchesGenre = selectedGenre === '전체' || book.genre === selectedGenre;
-            return matchesSearch && matchesGenre;
+            const matchescategory = selectedcategory === '전체' || book.category === selectedcategory;
+            return matchesSearch && matchescategory;
         })
         .sort((a, b) => {
             if (sortBy === 'title') return a.title.localeCompare(b.title);
@@ -364,9 +366,9 @@ export default function App() {
                 books={books}
                 currentUser={currentUser}
                 isOpen={isSidebarOpen}
-                selectedGenre={selectedGenre}
+                selectedcategory={selectedcategory}
                 sortBy={sortBy}
-                onGenreChange={setSelectedGenre}
+                oncategoryChange={setSelectedcategory}
                 onSortChange={setSortBy}
                 onClose={() => setIsSidebarOpen(false)}
             />
@@ -376,7 +378,7 @@ export default function App() {
                 {/* Filter & Sort Header */}
                 <div className="mb-6 flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <h2 className="text-gray-700 mb-1">{selectedGenre === '전체' ? '전체 도서' : `${selectedGenre} 도서`}</h2>
+                        <h2 className="text-gray-700 mb-1">{selectedcategory === '전체' ? '전체 도서' : `${selectedcategory} 도서`}</h2>
                         <p className="text-sm text-gray-500">{filteredBooks.length}권의 도서</p>
                     </div>
                     <div className="flex items-center gap-2">

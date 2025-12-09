@@ -4,13 +4,13 @@ import { X, Sparkles, Wand2, RefreshCw, Palette, Image as ImageIcon, CheckCircle
 interface AIImageGeneratorProps {
     bookId?: string; // 신규 등록 시에는 ID가 없을 수 있음 (Optional)
     bookTitle: string;
-    bookGenre: string;
+    bookcategory: string;
     bookDescription?: string;
     onClose: () => void;
     onGenerate: (imageUrl: string) => void;
 }
 
-export function AIImageGenerator({ bookId, bookTitle, bookGenre, bookDescription, onClose, onGenerate }: AIImageGeneratorProps) {
+export function AIImageGenerator({ bookId, bookTitle, bookcategory, bookDescription, onClose, onGenerate }: AIImageGeneratorProps) {
     // API Key 관리 (로컬 스토리지 연동)
     const [apiKey, setApiKey] = useState(() => localStorage.getItem('openai_api_key') || '');
 
@@ -64,13 +64,13 @@ export function AIImageGenerator({ bookId, bookTitle, bookGenre, bookDescription
                     messages: [
                         {
                             role: "system",
-                            content: "You are a professional book cover designer. Based on the book title, genre, description, and user keywords, create a highly detailed DALL-E 3 prompt. The prompt should describe the visual elements, mood, lighting, and composition. Output ONLY the English prompt text."
+                            content: "You are a professional book cover designer. Based on the book title, category, description, and user keywords, create a highly detailed DALL-E 3 prompt. The prompt should describe the visual elements, mood, lighting, and composition. Output ONLY the English prompt text."
                         },
                         {
                             role: "user",
                             content: `
                                 Book Title: ${bookTitle}
-                                Genre: ${bookGenre}
+                                category: ${bookcategory}
                                 Description: ${bookDescription || "No description provided"}
                                 User Keywords: ${prompt}
                                 Preferred Style: ${activeStyle}
@@ -205,7 +205,7 @@ export function AIImageGenerator({ bookId, bookTitle, bookGenre, bookDescription
                         </div>
                         <div>
                             <h3 className="font-bold text-gray-800">{bookTitle}</h3>
-                            <p className="text-sm text-gray-600">{bookGenre} {bookDescription && `· ${bookDescription.slice(0, 30)}...`}</p>
+                            <p className="text-sm text-gray-600">{bookcategory} {bookDescription && `· ${bookDescription.slice(0, 30)}...`}</p>
                         </div>
                     </div>
 

@@ -11,11 +11,11 @@ interface AddBookDialogProps {
 }
 
 export function AddBookDialog({ book, onClose, onSave }: AddBookDialogProps) {
-    // 폼 데이터 상태 (구매 시스템에 맞게 stock 추가, genre 통일)
+    // 폼 데이터 상태 (구매 시스템에 맞게 stock 추가, category 통일)
     const [formData, setFormData] = useState({
         title: '',
         author: '',
-        genre: '소설',
+        category: '소설',
         description: '',
         coverImage: '',
         publishedYear: new Date().getFullYear(),
@@ -31,7 +31,7 @@ export function AddBookDialog({ book, onClose, onSave }: AddBookDialogProps) {
             setFormData({
                 title: book.title,
                 author: book.author,
-                genre: book.genre,
+                category: book.category,
                 description: book.description,
                 coverImage: book.coverImage,
                 publishedYear: book.publishedYear,
@@ -106,8 +106,8 @@ export function AddBookDialog({ book, onClose, onSave }: AddBookDialogProps) {
                     <div className="grid grid-cols-3 gap-4">
                         <SelectField
                             label="장르"
-                            value={formData.genre}
-                            onChange={(v:any) => handleChange("genre", v)}
+                            value={formData.category}
+                            onChange={(v:any) => handleChange("category", v)}
                             options={["소설", "SF", "판타지", "미스터리", "로맨스", "자기계발", "에세이", "역사", "과학", "기타"]}
                         />
                         <InputField label="출판년도" type="number" value={formData.publishedYear} onChange={(v:any) => handleChange("publishedYear", Number(v))} />
@@ -173,7 +173,7 @@ export function AddBookDialog({ book, onClose, onSave }: AddBookDialogProps) {
                 <AIImageGenerator
                     bookId={book?.id} // bookId 전달 (수정 시 즉시 저장용)
                     bookTitle={formData.title}
-                    bookGenre={formData.genre}
+                    bookcategory={formData.category}
                     onClose={() => setShowAIGenerator(false)}
                     onGenerate={handleAIGenerate}
                 />

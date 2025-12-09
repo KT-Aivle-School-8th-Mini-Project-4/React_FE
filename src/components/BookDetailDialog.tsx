@@ -304,7 +304,7 @@ export function BookDetailDialog({
                             <div>
                                 <div className="flex items-start justify-between mb-2">
                                     <h3 className="text-2xl text-gray-900">{book.title}</h3>
-                                    <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">{book.genre}</span>
+                                    <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">{book.category}</span>
                                 </div>
                                 <p className="text-lg text-gray-600">{book.author}</p>
                             </div>
@@ -328,7 +328,7 @@ export function BookDetailDialog({
                                 )}
                                 <div className="flex items-center gap-3">
                                     <div className="flex items-center gap-2 text-gray-600"><Tag className="w-4 h-4" /><span className="text-sm">장르</span></div>
-                                    <span className="text-gray-900">{book.genre}</span>
+                                    <span className="text-gray-900">{book.category}</span>
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <div className="flex items-center gap-2 text-gray-600"><UserIcon className="w-4 h-4" /><span className="text-sm">등록자</span></div>
