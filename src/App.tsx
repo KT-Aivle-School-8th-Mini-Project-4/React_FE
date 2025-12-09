@@ -102,7 +102,6 @@ export default function App() {
     // --- 핸들러 함수들 ---
 
     const handleLogin = (user: User) => setCurrentUser(user);
-
     const handleLogout = async () => {
         // 서버에 로그아웃 요청 보내기
         try {

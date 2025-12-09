@@ -64,8 +64,9 @@ export function AIImageGenerator({ bookId, bookTitle, bookGenre, bookDescription
                     messages: [
                         {
                             role: "system",
-                            content: "You are a professional book cover designer. Based on the book title, genre, description, and user keywords, create a highly detailed DALL-E 3 prompt. The prompt should describe the visual elements, mood, lighting, and composition. Output ONLY the English prompt text."
-                        },
+                            content: "You are a professional book cover image designer. Based on the book title, genre, description, and user keywords, create a highly detailed DALL-E 3 prompt for a **flat, single-side front cover illustration** (not a 3D book, not a mockup, not a full spread). Ensure the design supports and correctly renders **text**, without altering or distorting any characters.The image must include **only the book title**, with no subtitle, no author name, and no additional text of any kind.The title must appear exactly as typed. The prompt should describe the visual elements, mood, lighting, color palette, typography style, and composition of the front cover only. Output ONLY the final English prompt text that describes the illustration."
+
+                },
                         {
                             role: "user",
                             content: `
