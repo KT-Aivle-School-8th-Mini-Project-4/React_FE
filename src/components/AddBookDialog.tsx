@@ -18,7 +18,7 @@ export function AddBookDialog({ book, onClose, onSave }: AddBookDialogProps) {
         description: '',
         coverImage: '',
         publishedYear: new Date().getFullYear(),
-        isbn: '',
+        price: 0,
         stock: 50 // 기본 재고 (구매 시스템 필수)
     });
 
@@ -34,7 +34,7 @@ export function AddBookDialog({ book, onClose, onSave }: AddBookDialogProps) {
                 description: book.description,
                 coverImage: book.coverImage,
                 publishedYear: book.publishedYear,
-                isbn: book.isbn || '',
+                price: book.price || 0,
                 stock: book.stock
             });
         }
@@ -119,9 +119,7 @@ export function AddBookDialog({ book, onClose, onSave }: AddBookDialogProps) {
                         <InputField label="출판년도" type="number" value={formData.publishedYear} onChange={(v:any) => handleChange("publishedYear", Number(v))} />
                         <InputField label="재고 수량" type="number" value={formData.stock} onChange={(v:any) => handleChange("stock", Number(v))} />
                     </div>
-
-                    <InputField label="ISBN" value={formData.isbn} onChange={(v:any) => handleChange("isbn", v)} placeholder="선택 입력" />
-
+                    <InputField label="가격 *" type="number" value={formData.price} onChange={(v:any) => handleChange("price", Number(v))} required placeholder="선택 입력" />
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">설명</label>
                         <textarea

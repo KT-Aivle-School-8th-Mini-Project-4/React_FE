@@ -64,6 +64,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
             // 토큰 저장 (매우 중요!)
             if (data.accessToken) {
                 localStorage.setItem('accessToken', data.accessToken);
+                localStorage.setItem('refreshToken', data.refreshToken);
             }
 
             // 부모 컴포넌트(App)에 로그인 정보 전달

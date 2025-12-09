@@ -11,6 +11,7 @@ import { BookInventoryDialog } from './components/BookInventoryDialog';
 import { Plus, Menu, X, Edit2, Trash2, Search, LogOut, User as UserIcon, Package } from 'lucide-react';
 import ktAivleLogo from './assets/e5ac75b360c5f16e2a9a70e851e77229ca22f463.png'; // 로고 경로 확인 필요
 import { Book, User, Order } from './types'; // types.ts에서 공통 타입 가져오기
+import { apiFetch } from './api/client';
 
 export default function App() {
     // 1. 유저 상태 관리
@@ -34,9 +35,8 @@ export default function App() {
     // 도서 목록 불러오기 (API)
     const fetchBooks = async () => {
         try {
-            const res = await fetch("http://localhost:8080/book");
-            if (!res.ok) throw new Error("Failed to fetch books");
-            const data = await res.json();
+            const data: Book[] = await apiFetch('/book');
+
             // 날짜 변환 등 데이터 전처리
             const parsedData = data.map((b: any) => ({
                 ...b,
@@ -147,16 +147,14 @@ export default function App() {
         setIsDialogOpen(false);
     };
 
-    // 도서 삭제 (API 연동)
+// ... handleDeleteBook 함수도 apiFetch로 교체
     const handleDeleteBook = async (id: string) => {
         try {
-            const res = await fetch(`http://localhost:8080/book/${id}`, { method: "DELETE" });
-            if (!res.ok) throw new Error("삭제 실패");
+            await apiFetch(`/book/${id}`, { method: "DELETE" }); // 204 응답 자동 처리
             alert("도서가 삭제되었습니다.");
-            fetchBooks(); // 목록 갱신
+            fetchBooks();
         } catch (error) {
-            console.error("삭제 오류:", error);
-            alert("삭제 중 오류가 발생했습니다.");
+            alert(error.message);
         }
     };
 
