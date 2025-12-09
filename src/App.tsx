@@ -57,25 +57,98 @@ export default function App() {
         fetchBooks();
     }, []);
 
-    // 3. 주문(구매) 내역 상태 관리 (LocalStorage 연동)
-    const [orders, setOrders] = useState<Order[]>(() => {
-        const savedOrders = localStorage.getItem('orders');
-        if (savedOrders) {
-            try {
-                const parsed = JSON.parse(savedOrders);
-                return parsed.map((o: any) => ({
-                    ...o,
-                    purchaseDate: new Date(o.purchaseDate)
-                }));
-            } catch (e) { console.error(e); }
-        }
-        return [];
-    });
+    // 3. 주문(구매) 내역 상태 관리 (LocalStorage 연동) -> api 기반으로 수정
+    // const [orders, setOrders] = useState<Order[]>(() => {
+    //     const savedOrders = localStorage.getItem('orders');
+    //     if (savedOrders) {
+    //         try {
+    //             const parsed = JSON.parse(savedOrders);
+    //             return parsed.map((o: any) => ({
+    //                 ...o,
+    //                 purchaseDate: new Date(o.purchaseDate)
+    //             }));
+    //         } catch (e) { console.error(e); }
+    //     }
+    //     return [];
+    // });
+    //
+    // // 주문 내역 저장
+    // useEffect(() => {
+    //     localStorage.setItem('orders', JSON.stringify(orders));
+    // }, [orders]);
+//주문 상세내역 조회
+    const [orders, setOrders] = useState<Order[]>([]);
 
-    // 주문 내역 저장
     useEffect(() => {
-        localStorage.setItem('orders', JSON.stringify(orders));
-    }, [orders]);
+        if (!currentUser) return;
+
+        //{orders.id} 아니면 {orderId}
+        const loadOrders = async () => {
+            try {
+                const data = await apiFetch(`/order/${orders.id}`);
+                setOrders(data);
+            } catch (e) {
+                console.error("주문 불러오기 실패:", e);
+            }
+        };
+
+        loadOrders();
+    }, [currentUser]);
+
+    //주문 결제처리
+
+    const handlePayOrder = async (orderId: string) => {
+        try {
+            await apiFetch(`/order/${orderId}/pay`, {
+                method: "POST"
+            });
+
+            // 최신 주문 목록 불러오기
+            const updatedOrders = await apiFetch(`/order/user/${currentUser.id}`);
+            setOrders(updatedOrders);
+
+            alert("결제가 완료되었습니다!");
+        } catch (error) {
+            console.error("결제 실패:", error);
+            alert("결제 처리 중 오류가 발생했습니다.");
+        }
+    };
+
+    //주문 취소
+
+    const handleCancelOrder = async (orderId: string) => {
+        if (!confirm("정말 주문을 취소하시겠습니까?")) return;
+
+        try {
+            await apiFetch(`/order/${orderId}/cancel`, {
+                method: "POST"
+            });
+
+            const updatedOrders = await apiFetch(`/order/user/${currentUser.id}`);
+            setOrders(updatedOrders);
+
+            alert("주문이 취소되었습니다.");
+        } catch (error) {
+            console.error("주문 취소 실패:", error);
+            alert("주문 취소 중 오류가 발생했습니다.");
+        }
+    };
+
+    const loadOrderDetail = async (orderId: string) => {
+        try {
+            const data = await apiFetch(`/order/${orderId}`);
+            return data;  // MyPage 또는 Dialog에서 사용됨
+        } catch (error) {
+            console.error("주문 상세 조회 실패:", error);
+            alert("주문 정보를 불러올 수 없습니다.");
+        }
+    };
+
+
+
+
+
+
 
     // UI 상태들
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -191,27 +264,100 @@ export default function App() {
     };
 
     // ⭐ [핵심] 구매하기 핸들러
+
     const handlePurchase = (bookId: string, quantity: number, totalPrice: number) => {
         if (!currentUser) return;
         const book = books.find(b => b.id === bookId);
         if (!book) return;
 
+
         // 1. 재고 차감 (API 연동 필요 - 여기선 로컬 상태만 업데이트 예시)
-        // 실제로는 PUT /api/book/{id}/stock 호출 권장
-        const updatedBook = { ...book, stock: book.stock - quantity };
-        setBooks(books.map(b => b.id === bookId ? updatedBook : b));
-        setSelectedBook(updatedBook);
+        // // 실제로는 PUT /api/book/{id}/stock 호출 권장
+        // const updatedBook = { ...book, stock: book.stock - quantity };
+        // setBooks(books.map(b => b.id === bookId ? updatedBook : b));
+        // setSelectedBook(updatedBook);
+
 
         // 2. 주문 기록 생성
-        const newOrder: Order = {
-            id: Date.now().toString(),
-            bookId,
-            userId: currentUser.id,
-            quantity,
-            totalPrice,
-            purchaseDate: new Date()
+        // const newOrder: Order = {
+        //     id: Date.now().toString(),
+        //     bookId,
+        //     userId: currentUser.id,
+        //     quantity,
+        //     totalPrice,
+        //     purchaseDate: new Date()
+        // };
+        // setOrders(prev => [newOrder, ...prev]);
+
+        // const handlePurchase = async (bookId: string, quantity: number, totalPrice: number) => {
+        //     if (!currentUser) return;
+        //
+        //     try {
+        //         // ⭐ 주문 생성 API 호출
+        //         await apiFetch(`/order`, {
+        //             method: "POST",
+        //             body: JSON.stringify({
+        //                 userId: currentUser.id,
+        //                 bookId,
+        //                 quantity,
+        //                 totalPrice
+        //             })
+        //         });
+        //
+        //         // ⭐ 재고 갱신 API(선택)
+        //         await apiFetch(`/book/${bookId}/stock`, {
+        //             method: "PUT",
+        //             body: JSON.stringify({ change: -quantity })
+        //         });
+        //
+        //         // ⭐ 주문 목록 다시 로드
+        //         const updatedOrders = await apiFetch(`/order/user/${currentUser.id}`);
+        //         setOrders(updatedOrders);
+        //
+        //         // ⭐ 책 목록 갱신
+        //         fetchBooks();
+        //
+        //         alert("구매 완료!");
+        //     } catch (error) {
+        //         console.error("구매 실패:", error);
+        //         alert("구매 처리 중 오류가 발생했습니다.");
+        //     }
+        // };
+
+        const handlePurchase = async (bookId: string, quantity: number, totalPrice: number) => {
+            if (!currentUser) return;
+
+            try {
+                // 1) 주문 생성 요청
+                const createdOrder = await apiFetch(`/order`, {
+                    method: "POST",
+                    body: JSON.stringify({
+                        userId: currentUser.id,
+                        bookId,
+                        quantity,
+                        totalPrice
+                    })
+                });
+
+                // 2) 재고 감소
+                await apiFetch(`/book/${bookId}/stock`, {
+                    method: "PUT",
+                    body: JSON.stringify({ change: -quantity })
+                });
+
+                // 3) 최신 주문 목록 가져오기
+                const updatedOrders = await apiFetch(`/order/user/${currentUser.id}`);
+                setOrders(updatedOrders);
+
+                // 4) 책 목록 갱신
+                fetchBooks();
+
+                alert("주문 생성이 완료되었습니다!\n결제는 주문 내역에서 진행해주세요.");
+            } catch (error) {
+                console.error("구매 실패:", error);
+                alert("구매 처리 중 오류가 발생했습니다.");
+            }
         };
-        setOrders(prev => [newOrder, ...prev]);
 
         alert(`${book.title} ${quantity}권을 구매했습니다. (총 ${totalPrice.toLocaleString()}원)`);
     };
