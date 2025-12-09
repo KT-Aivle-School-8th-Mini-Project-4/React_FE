@@ -1,215 +1,395 @@
-import React, { useState, useEffect } from 'react';
-import { Book } from '../types'; // types.ts 확인
-import { apiFetch } from '../api/client'; // ⭐ apiFetch 임포트
-import { X, Sparkles } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Book } from '../App';
+import { X, Sparkles, Upload } from 'lucide-react';
 import { AIImageGenerator } from './AIImageGenerator';
 
 interface AddBookDialogProps {
-    book: Book | null;          // null이면 신규, 있으면 수정
-    onClose: () => void;
-    onSave: (savedBook: Book) => void; // 저장 완료 후 부모에게 알림
+  book: Book | null;
+  onClose: () => void;
+  onSave: (book: any) => void;
+  isDarkMode?: boolean;
 }
 
-export function AddBookDialog({ book, onClose, onSave }: AddBookDialogProps) {
-    // 폼 데이터 상태 (구매 시스템에 맞게 stock 추가, genre 통일)
-    const [formData, setFormData] = useState({
-        title: '',
-        author: '',
-        genre: '소설',
-        description: '',
-        coverImage: '',
-        publishedYear: new Date().getFullYear(),
-        price: 0,
-        stock: 50 // 기본 재고 (구매 시스템 필수)
-    });
+export function AddBookDialog({ book, onClose, onSave, isDarkMode }: AddBookDialogProps) {
+  const [formData, setFormData] = useState({
+    title: '',
+    author: '',
+    genre: '소설',
+    description: '',
+    coverImage: '',
+    publishedYear: new Date().getFullYear(),
+    price: 15000,
+    stock: 50
+  });
 
-    const [showAIGenerator, setShowAIGenerator] = useState(false);
+  const [showAIGenerator, setShowAIGenerator] = useState(false);
+  const [imageInputMethod, setImageInputMethod] = useState<'upload' | 'url'>('upload');
 
-    // 수정 모드일 때 기존 데이터 채우기
-    useEffect(() => {
-        if (book) {
-            setFormData({
-                title: book.title,
-                author: book.author,
-                genre: book.genre,
-                description: book.description,
-                coverImage: book.coverImage,
-                publishedYear: book.publishedYear,
-                price: book.price || 0,
-                stock: book.stock
-            });
-        }
-    }, [book]);
+  useEffect(() => {
+    if (book) {
+      setFormData({
+        title: book.title,
+        author: book.author,
+        genre: book.genre,
+        description: book.description,
+        coverImage: book.coverImage,
+        publishedYear: book.publishedYear,
+        price: book.price || 15000,
+        stock: book.stock || 50
+      });
+    }
+  }, [book]);
 
-    const handleChange = (key: string, value: any) => {
-        setFormData(prev => ({ ...prev, [key]: value }));
-    };
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (book) {
+      onSave({ ...book, ...formData });
+    } else {
+      onSave(formData);
+    }
+  };
 
-    // ⭐ [API 연동] 저장 버튼 핸들러 (apiFetch 사용)
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+  const handleAIGenerate = (imageUrl: string) => {
+    setFormData({ ...formData, coverImage: imageUrl });
+    setShowAIGenerator(false);
+  };
 
-        // 1. URL 및 Method 결정
-        const method = book ? "PUT" : "POST";
-        const endpoint = book
-            ? `/book/${book.id}`  // 수정 (PUT /book/{id})
-            : `/book`;            // 등록 (POST /book)
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
+      <div className={`rounded-lg shadow-xl max-w-xl w-full max-h-[90vh] overflow-y-auto transition-colors ${
+        isDarkMode ? 'bg-gray-800' : 'bg-white'
+      }`}>
+        {/* Dialog Header */}
+        <div className={`sticky top-0 border-b px-6 py-4 flex items-center justify-between transition-colors ${
+          isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+        }`}>
+          <h2 className={isDarkMode ? 'text-white' : 'text-gray-900'}>
+            {book ? '도서 편집' : '신규 도서 등록'}
+          </h2>
+          <button
+            onClick={onClose}
+            className={`p-2 rounded-lg transition-colors ${
+              isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+            }`}
+          >
+            <X className={`w-5 h-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+          </button>
+        </div>
 
-        try {
-            // 2. API 호출 (apiFetch 사용)
-            // apiFetch가 자동으로 토큰을 붙여주고, 에러 처리도 합니다.
-            const result: Book = await apiFetch(endpoint, {
-                method,
-                body: JSON.stringify(formData)
-            });
-
-            // 3. 성공 시 처리
-            onSave(result); // App.tsx의 목록 갱신 함수 호출
-
-            alert(book ? "도서가 수정되었습니다." : "도서가 등록되었습니다.");
-            onClose();
-
-        } catch (err: any) {
-            console.error(err);
-            alert(`저장 중 오류가 발생했습니다: ${err.message}`);
-        }
-    };
-
-    // AI 이미지 적용
-    const handleAIGenerate = (url: string) => {
-        handleChange("coverImage", url);
-        setShowAIGenerator(false);
-    };
-
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-
-                {/* Header */}
-                <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between z-10">
-                    <h2 className="text-xl font-bold text-gray-900">
-                        {book ? "도서 정보 수정" : "신규 도서 등록"}
-                    </h2>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                        <X className="w-5 h-5 text-gray-500" />
-                    </button>
-                </div>
-
-                {/* Form */}
-                <form onSubmit={handleSubmit} className="p-6 space-y-5">
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <InputField label="도서 제목 *" value={formData.title} onChange={(v:any) => handleChange("title", v)} required />
-                        <InputField label="저자 *" value={formData.author} onChange={(v:any) => handleChange("author", v)} required />
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-4">
-                        <SelectField
-                            label="장르"
-                            value={formData.genre}
-                            onChange={(v:any) => handleChange("genre", v)}
-                            options={["소설", "SF", "판타지", "미스터리", "로맨스", "자기계발", "에세이", "역사", "과학", "기타"]}
-                        />
-                        <InputField label="출판년도" type="number" value={formData.publishedYear} onChange={(v:any) => handleChange("publishedYear", Number(v))} />
-                        <InputField label="재고 수량" type="number" value={formData.stock} onChange={(v:any) => handleChange("stock", Number(v))} />
-                    </div>
-
-                    <InputField label="가격 *" type="number" value={formData.price} onChange={(v:any) => handleChange("price", Number(v))} required placeholder="선택 입력" />
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">설명</label>
-                        <textarea
-                            className="w-full px-4 py-2 border rounded-lg h-24 resize-none focus:ring-2 focus:ring-blue-500 outline-none"
-                            value={formData.description}
-                            onChange={(e) => handleChange("description", e.target.value)}
-                        />
-                    </div>
-
-                    {/* 표지 이미지 섹션 */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">표지 이미지</label>
-                        <div className="flex gap-3 items-start">
-                            {formData.coverImage ? (
-                                <img src={formData.coverImage} className="w-24 h-36 object-cover rounded border" alt="Preview" />
-                            ) : (
-                                <div className="w-24 h-36 bg-gray-100 rounded border flex items-center justify-center text-gray-400 text-xs">
-                                    이미지 없음
-                                </div>
-                            )}
-
-                            <div className="flex-1 space-y-3">
-                                <input
-                                    type="text"
-                                    className="w-full px-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                                    placeholder="이미지 URL 직접 입력"
-                                    value={formData.coverImage}
-                                    onChange={(e) => handleChange("coverImage", e.target.value)}
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowAIGenerator(true)}
-                                    className="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-purple-200 transition-colors"
-                                >
-                                    <Sparkles className="w-4 h-4" /> AI 표지 생성하기
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Footer Buttons */}
-                    <div className="flex justify-end gap-3 pt-6 border-t mt-4">
-                        <button type="button" onClick={onClose} className="px-6 py-2.5 bg-gray-100 rounded-lg hover:bg-gray-200 font-medium">
-                            취소
-                        </button>
-                        <button type="submit" className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-md">
-                            {book ? "수정 완료" : "도서 등록"}
-                        </button>
-                    </div>
-                </form>
+        {/* Dialog Content */}
+        <form onSubmit={handleSubmit} className="p-6">
+          <div className="space-y-4">
+            {/* Title */}
+            <div>
+              <label className={`block text-sm mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                도서 제목 <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                className={`w-full px-3 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+                  isDarkMode 
+                    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                    : 'border-gray-300'
+                }`}
+                placeholder=""
+              />
             </div>
 
-            {/* AI Generator Popup */}
-            {showAIGenerator && (
-                <AIImageGenerator
-                    bookId={book?.id} // bookId 전달 (수정 시 즉시 저장용)
-                    bookTitle={formData.title}
-                    bookGenre={formData.genre}
-                    onClose={() => setShowAIGenerator(false)}
-                    onGenerate={handleAIGenerate}
+            {/* Author */}
+            <div>
+              <label className={`block text-sm mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                저자 <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.author}
+                onChange={(e) => setFormData({ ...formData, author: e.target.value })}
+                className={`w-full px-3 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+                  isDarkMode 
+                    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                    : 'border-gray-300'
+                }`}
+                placeholder=""
+              />
+            </div>
+
+            {/* Genre, Published Year, Stock - in one row */}
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className={`block text-sm mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  장르
+                </label>
+                <select
+                  value={formData.genre}
+                  onChange={(e) => setFormData({ ...formData, genre: e.target.value })}
+                  className={`w-full px-3 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+                    isDarkMode 
+                      ? 'bg-gray-700 border-gray-600 text-white' 
+                      : 'border-gray-300'
+                  }`}
+                >
+                  <option value="소설">소설</option>
+                  <option value="SF">SF</option>
+                  <option value="판타지">판타지</option>
+                  <option value="미스터리">미스터리</option>
+                  <option value="로맨스">로맨스</option>
+                  <option value="추리">추리</option>
+                  <option value="스릴러">스릴러</option>
+                  <option value="공포">공포</option>
+                  <option value="무협">무협</option>
+                  <option value="라이트노벨">라이트노벨</option>
+                  <option value="자기계발">자기계발</option>
+                  <option value="에세이">에세이</option>
+                  <option value="시/詩">시/詩</option>
+                  <option value="역사">역사</option>
+                  <option value="철학">철학</option>
+                  <option value="종교">종교</option>
+                  <option value="과학">과학</option>
+                  <option value="기술/공학">기술/공학</option>
+                  <option value="컴퓨터/IT">컴퓨터/IT</option>
+                  <option value="의학">의학</option>
+                  <option value="경제">경제</option>
+                  <option value="경영">경영</option>
+                  <option value="정치">정치</option>
+                  <option value="사회">사회</option>
+                  <option value="예술">예술</option>
+                  <option value="여행">여행</option>
+                  <option value="요리">요리</option>
+                  <option value="건강">건강</option>
+                  <option value="육아">육아</option>
+                  <option value="만화">만화</option>
+                  <option value="잡지">잡지</option>
+                  <option value="사전">사전</option>
+                  <option value="기타">기타</option>
+                </select>
+              </div>
+
+              <div>
+                <label className={`block text-sm mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  출판년도
+                </label>
+                <input
+                  type="number"
+                  value={formData.publishedYear}
+                  onChange={(e) => {
+                    const year = parseInt(e.target.value);
+                    if (!isNaN(year) || e.target.value === '') {
+                      setFormData({ ...formData, publishedYear: isNaN(year) ? new Date().getFullYear() : year });
+                    }
+                  }}
+                  className={`w-full px-3 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+                    isDarkMode 
+                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                      : 'border-gray-300'
+                  }`}
+                  min="1000"
+                  max="2100"
+                  placeholder="2025"
                 />
-            )}
-        </div>
-    );
-}
+              </div>
 
-// 하위 컴포넌트들 (타입 적용)
-function InputField({ label, value, onChange, type = "text", required = false, placeholder = "" }: any) {
-    return (
-        <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-            <input
-                type={type}
-                value={value}
-                onChange={(e) => onChange(e.target.value)}
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                required={required}
-                placeholder={placeholder}
-            />
-        </div>
-    );
-}
+              <div>
+                <label className={`block text-sm mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  <span className="text-blue-600">재고</span> 수량
+                </label>
+                <input
+                  type="number"
+                  value={formData.stock}
+                  onChange={(e) => {
+                    const stock = parseInt(e.target.value);
+                    if (!isNaN(stock) || e.target.value === '') {
+                      setFormData({ ...formData, stock: isNaN(stock) ? 50 : stock });
+                    }
+                  }}
+                  className={`w-full px-3 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+                    isDarkMode 
+                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                      : 'border-gray-300'
+                  }`}
+                  min="0"
+                  placeholder="50"
+                />
+              </div>
+            </div>
 
-function SelectField({ label, value, options, onChange }: any) {
-    return (
-        <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-            <select
-                value={value}
-                onChange={(e) => onChange(e.target.value)}
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+            {/* Price */}
+            <div>
+              <label className={`block text-sm mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                가격
+              </label>
+              <input
+                type="number"
+                value={formData.price}
+                onChange={(e) => {
+                  const price = parseInt(e.target.value);
+                  if (!isNaN(price) || e.target.value === '') {
+                    setFormData({ ...formData, price: isNaN(price) ? 15000 : price });
+                  }
+                }}
+                className={`w-full px-3 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+                  isDarkMode 
+                    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                    : 'border-gray-300'
+                }`}
+                min="0"
+                placeholder=""
+              />
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className={`block text-sm mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                설명
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={4}
+                className={`w-full px-3 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-colors ${
+                  isDarkMode 
+                    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                    : 'border-gray-300'
+                }`}
+                placeholder=""
+              />
+            </div>
+
+            {/* Cover Image */}
+            <div>
+              <label className={`block text-sm mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                표지 이미지
+              </label>
+
+              {/* Tab switcher */}
+              <div className="flex gap-2 mb-2">
+                <button
+                  type="button"
+                  onClick={() => setImageInputMethod('upload')}
+                  className={`px-3 py-1.5 text-sm rounded transition-colors ${
+                    imageInputMethod === 'upload'
+                      ? isDarkMode
+                        ? 'bg-gray-700 text-white'
+                        : 'bg-gray-100 text-gray-900'
+                      : isDarkMode
+                      ? 'text-gray-400 hover:text-gray-300'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  이미지 첨부
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setImageInputMethod('url')}
+                  className={`px-3 py-1.5 text-sm rounded transition-colors ${
+                    imageInputMethod === 'url'
+                      ? isDarkMode
+                        ? 'bg-gray-700 text-white'
+                        : 'bg-gray-100 text-gray-900'
+                      : isDarkMode
+                      ? 'text-gray-400 hover:text-gray-300'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  이미지 URL 직접 입력
+                </button>
+              </div>
+
+              {/* Image input based on method */}
+              {imageInputMethod === 'url' ? (
+                <input
+                  type="url"
+                  value={formData.coverImage}
+                  onChange={(e) => setFormData({ ...formData, coverImage: e.target.value })}
+                  className={`w-full px-3 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+                    isDarkMode 
+                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                      : 'border-gray-300'
+                  }`}
+                  placeholder="이미지 URL 직접 입력"
+                />
+              ) : (
+                <div className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
+                  isDarkMode 
+                    ? 'border-gray-600 hover:border-gray-500' 
+                    : 'border-gray-300 hover:border-gray-400'
+                }`}>
+                  <Upload className={`w-8 h-8 mx-auto mb-2 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} />
+                  <p className={`text-sm mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    파일을 드래그하거나 클릭하여 업로드
+                  </p>
+                  <p className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                    또는 아래 URL 입력 탭을 사용하세요
+                  </p>
+                </div>
+              )}
+
+              {/* AI Generate Button */}
+              <button
+                type="button"
+                onClick={() => setShowAIGenerator(true)}
+                className="w-full mt-2 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-purple-500 text-white rounded-lg hover:from-purple-700 hover:to-purple-600 transition-all"
+              >
+                <Sparkles className="w-4 h-4" />
+                AI 표지 생성하기
+              </button>
+              
+              {formData.coverImage && (
+                <div className={`mt-3 border rounded-lg p-3 transition-colors ${
+                  isDarkMode ? 'border-gray-600' : 'border-gray-200'
+                }`}>
+                  <p className={`text-xs mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>미리보기</p>
+                  <img
+                    src={formData.coverImage}
+                    alt="미리보기"
+                    className="w-24 h-32 object-cover rounded mx-auto"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://via.placeholder.com/200x300?text=No+Image';
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Dialog Actions */}
+          <div className={`flex justify-end gap-3 mt-6 pt-4 border-t transition-colors ${
+            isDarkMode ? 'border-gray-700' : 'border-gray-200'
+          }`}>
+            <button
+              type="button"
+              onClick={onClose}
+              className={`px-5 py-2.5 rounded-lg transition-colors ${
+                isDarkMode 
+                  ? 'bg-gray-700 text-white hover:bg-gray-600' 
+                  : 'text-gray-700 bg-gray-100 hover:bg-gray-200'
+              }`}
             >
-                {options.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
-            </select>
-        </div>
-    );
+              취소
+            </button>
+            <button
+              type="submit"
+              className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              도서 등록
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* AI Image Generator Dialog */}
+      {showAIGenerator && (
+        <AIImageGenerator
+          bookId={book?.id} // 기존 도서 수정 시에만 ID 전달
+          bookTitle={formData.title}
+          bookGenre={formData.genre}
+          onClose={() => setShowAIGenerator(false)}
+          onGenerate={handleAIGenerate}
+        />
+      )}
+    </div>
+  );
 }
