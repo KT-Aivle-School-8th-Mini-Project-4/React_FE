@@ -1,0 +1,9 @@
+version: 0.2
+
+phases:
+  post_build:
+    commands:
+      - echo "Deploy to S3"
+      - aws s3 sync build s3://aivle-class1-group1-bucket --delete
+      - echo "Invalidate CloudFront cache"
+      - aws cloudfront create-invalidation --distribution-id E15NJWDFIPN8VW --paths "/*"
