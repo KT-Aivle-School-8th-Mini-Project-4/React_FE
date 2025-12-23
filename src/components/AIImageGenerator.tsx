@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { BASE_URL } from '../api/client';
 import { X, Sparkles, Wand2, RefreshCw, Palette, Image as ImageIcon, CheckCircle, Key } from 'lucide-react';
 
 interface AIImageGeneratorProps {
@@ -11,6 +12,7 @@ interface AIImageGeneratorProps {
 }
 
 export function AIImageGenerator({ bookId, bookTitle, bookcategory, bookDescription, onClose, onGenerate }: AIImageGeneratorProps) {
+
     // API Key 관리 (로컬 스토리지 연동)
     const [apiKey, setApiKey] = useState(() => localStorage.getItem('openai_api_key') || '');
 
@@ -136,7 +138,7 @@ export function AIImageGenerator({ bookId, bookTitle, bookcategory, bookDescript
         if (bookId) {
             try {
                 // [수정] API 명세 반영: PATCH /book/{bookId}
-                const response = await fetch(`http://localhost:8080/book/${bookId}`, {
+                const response = await fetch(BASE_URL + `/book/${bookId}`, {
                     method: "PATCH",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ coverImage: selectedImage })

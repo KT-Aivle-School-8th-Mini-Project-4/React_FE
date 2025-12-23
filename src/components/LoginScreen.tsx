@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom'; // ⭐ 페이지 이동을 위해 필수
 import { User } from '../types'; // ⭐ types.ts에서 불러오기
+import { BASE_URL } from '../api/client';
 import { BookOpen, LogIn, AlertCircle } from 'lucide-react';
 
 interface LoginScreenProps {
@@ -39,7 +40,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
         // 2. 실제 백엔드 API 로그인 시도
         try {
             // ※ 백엔드 API 주소 확인 (보통 /api/login)
-            const response = await fetch('http://localhost:8080/user/login', {
+            const response = await fetch(BASE_URL + '/user/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 // 백엔드가 요구하는 필드명에 맞춰 전송 (email 또는 userId)

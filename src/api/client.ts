@@ -2,8 +2,9 @@
 
 // 명세서의 재발급 엔드포인트: POST /auth/refresh
 // ✅ types.ts에 정의된 TokenRefreshResponse를 임포트합니다.
-import { Book, TokenRefreshResponse } from '../types';
-const BASE_URL = 'http://localhost:8080';
+import {Book, TokenRefreshResponse, User} from '../types';
+// const BASE_URL = 'http://localhost:8080';
+export const BASE_URL = "k8s-default-a081004i-7760ac9cb9-369116095.us-east-1.elb.amazonaws.com";
 
 // ⭐ API 요청을 가로채서 토큰을 붙여주는 핵심 클라이언트
 export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {

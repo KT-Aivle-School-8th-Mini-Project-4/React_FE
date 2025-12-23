@@ -9,9 +9,8 @@ import { MyPage } from './components/MyPage';
 import { BookDetailDialog } from './components/BookDetailDialog';
 import { BookInventoryDialog } from './components/BookInventoryDialog';
 import { Plus, Menu, X, Edit2, Trash2, Search, LogOut, User as UserIcon, Package } from 'lucide-react';
-import ktAivleLogo from './assets/e5ac75b360c5f16e2a9a70e851e77229ca22f463.png'; // 로고 경로 확인 필요
 import { Book, User, Order } from './types'; // types.ts에서 공통 타입 가져오기
-import { apiFetch } from './api/client';
+import { apiFetch, BASE_URL } from './api/client';
 
 export default function App() {
     // 1. 유저 상태 관리
@@ -110,7 +109,7 @@ export default function App() {
         try {
             const token = localStorage.getItem('accessToken');
             if (token) {
-                await fetch("http://localhost:8080/user/logout", {
+                await fetch(BASE_URL + "/user/logout", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -167,7 +166,7 @@ export default function App() {
 
         try {
             for (const bookId of selectedBookIds) {
-                await fetch(`http://localhost:8080/book/${bookId}`, { method: "DELETE" });
+                await fetch(BASE_URL + `/book/${bookId}`, { method: "DELETE" });
             }
             alert("선택한 도서가 삭제되었습니다.");
             fetchBooks();
@@ -313,7 +312,7 @@ export default function App() {
                                 <Menu className="w-6 h-6 text-gray-700" />
                             </button>
                             <div className="flex items-center gap-2">
-                                <img src={ktAivleLogo} alt="Logo" className="h-8" />
+                                <img src={'./assets/iconImage.png'} alt="Logo" className="h-8" />
                                 <h1 className="text-gray-900 whitespace-nowrap">AI 도서 구매</h1>
                             </div>
                         </div>
@@ -426,6 +425,7 @@ export default function App() {
                     orders={orders} // ⭐ 구매 장부 전달
                     onClose={() => setIsMyPageOpen(false)}
                     onPasswordChange={handlePasswordChange}
+                    onLogout={handleLogout}
                     onEditBook={(book) => {
                         setEditingBook(book);
                         setIsDialogOpen(true);

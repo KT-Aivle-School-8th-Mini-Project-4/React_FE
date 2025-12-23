@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { BASE_URL } from '../api/client';
 import { AlertCircle, UserPlus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -17,7 +18,7 @@ export function SignUpScreen() {
         setSuccess("");
 
         try {
-            const res = await fetch("http://localhost:8080/user/signup", {
+            const res = await fetch(BASE_URL + "/user/signup", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

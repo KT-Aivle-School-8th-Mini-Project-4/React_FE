@@ -1,4 +1,4 @@
-import { Book } from '../App.tsx';
+import { Book } from '../types';
 
 export const initialBooks: Omit<Book, 'ratings' | 'reviews'>[] = [
     {

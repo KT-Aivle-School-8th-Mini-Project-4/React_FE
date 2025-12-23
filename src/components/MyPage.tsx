@@ -1,19 +1,31 @@
-import React, { useState, useEffect } from 'react';
-import { User, Book, Order } from '../types'; // types.ts 확인
-import { apiFetch } from '../api/client'; // ⭐ apiFetch 임포트
-import { X, BookOpen, ShoppingBag, Calendar, CheckCircle, Edit2, Trash2, Key, AlertCircle, LogOut } from 'lucide-react';
+import React, {useState, useEffect} from 'react';
+import {User, Book, Order} from '../types'; // types.ts 확인
+import {apiFetch} from '../api/client'; // ⭐ apiFetch 임포트
+import {X, BookOpen, ShoppingBag, Calendar, CheckCircle, Edit2, Trash2, Key, AlertCircle, LogOut} from 'lucide-react';
 
 interface MyPageProps {
-    user: User;
-    allBooks: Book[];   // 전체 책 목록 (주문 내역 매칭용)
-    onClose: () => void;
-    onPasswordChange: (newPassword: string) => void;
-    onEditBook: (book: Book) => void;
-    onDeleteBook: (id: string) => void;
-    onLogout: () => void; // 로그아웃 핸들러 추가
+    user: User,
+    allBooks: Book[],
+    onClose: () => void,
+    onPasswordChange: (newPassword: string) => void,
+    onEditBook: (book: Book) => void,
+    onDeleteBook: (id: string) => void,
+    onLogout: () => void,
+    orders?: Order[],
+    books?: Book[]
 }
 
-export function MyPage({ user, allBooks, onClose, onPasswordChange, onEditBook, onDeleteBook, onLogout }: MyPageProps) {
+export function MyPage({
+                           user,
+                           allBooks,
+                           onClose,
+                           onPasswordChange,
+                           onEditBook,
+                           onDeleteBook,
+                           onLogout,
+                           orders,
+                           books
+                       }: MyPageProps) {
     const [activeTab, setActiveTab] = useState<'info' | 'orders' | 'admin'>('info');
 
     // ⭐ [추가] API로 불러온 데이터를 저장할 State
@@ -94,7 +106,7 @@ export function MyPage({ user, allBooks, onClose, onPasswordChange, onEditBook, 
                 <div className="px-6 py-4 border-b flex justify-between items-center bg-gray-50">
                     <div className="flex items-center gap-3">
                         <div className="bg-white p-2 rounded-full shadow-sm">
-                            <UserIconWrapper role={user.role} />
+                            <UserIconWrapper role={user.role}/>
                         </div>
                         <div>
                             <h2 className="text-xl font-bold text-gray-800">마이페이지</h2>
@@ -102,7 +114,7 @@ export function MyPage({ user, allBooks, onClose, onPasswordChange, onEditBook, 
                         </div>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
-                        <X className="w-5 h-5 text-gray-500" />
+                        <X className="w-5 h-5 text-gray-500"/>
                     </button>
                 </div>
 
@@ -145,28 +157,35 @@ export function MyPage({ user, allBooks, onClose, onPasswordChange, onEditBook, 
                                     <div className="max-w-md">
                                         <h3 className="text-lg font-bold mb-6 border-b pb-2">비밀번호 변경</h3>
                                         <form onSubmit={handlePasswordSubmit} className="space-y-4">
-                                            <InputGroup label="현재 비밀번호" type="password" value={currentPassword} onChange={setCurrentPassword} />
-                                            <InputGroup label="새 비밀번호" type="password" value={newPassword} onChange={setNewPassword} />
-                                            <InputGroup label="새 비밀번호 확인" type="password" value={confirmPassword} onChange={setConfirmPassword} />
+                                            <InputGroup label="현재 비밀번호" type="password" value={currentPassword}
+                                                        onChange={setCurrentPassword}/>
+                                            <InputGroup label="새 비밀번호" type="password" value={newPassword}
+                                                        onChange={setNewPassword}/>
+                                            <InputGroup label="새 비밀번호 확인" type="password" value={confirmPassword}
+                                                        onChange={setConfirmPassword}/>
 
                                             {passwordError && (
-                                                <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 p-3 rounded-lg">
-                                                    <AlertCircle className="w-4 h-4" /> {passwordError}
+                                                <div
+                                                    className="flex items-center gap-2 text-sm text-red-600 bg-red-50 p-3 rounded-lg">
+                                                    <AlertCircle className="w-4 h-4"/> {passwordError}
                                                 </div>
                                             )}
                                             {passwordSuccess && (
-                                                <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-3 rounded-lg">
-                                                    <CheckCircle className="w-4 h-4" /> 변경 완료!
+                                                <div
+                                                    className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-3 rounded-lg">
+                                                    <CheckCircle className="w-4 h-4"/> 변경 완료!
                                                 </div>
                                             )}
-                                            <button type="submit" className="w-full py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium transition-colors">
+                                            <button type="submit"
+                                                    className="w-full py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium transition-colors">
                                                 변경하기
                                             </button>
                                         </form>
 
                                         <div className="mt-8 pt-6 border-t">
-                                            <button onClick={onLogout} className="flex items-center gap-2 text-red-600 hover:text-red-700 font-medium">
-                                                <LogOut className="w-4 h-4" /> 로그아웃
+                                            <button onClick={onLogout}
+                                                    className="flex items-center gap-2 text-red-600 hover:text-red-700 font-medium">
+                                                <LogOut className="w-4 h-4"/> 로그아웃
                                             </button>
                                         </div>
                                     </div>
@@ -178,13 +197,15 @@ export function MyPage({ user, allBooks, onClose, onPasswordChange, onEditBook, 
                                         <div className="flex items-center justify-between mb-6">
                                             <h3 className="text-lg font-bold flex items-center gap-2">
                                                 <ShoppingBag className="w-5 h-5 text-indigo-600"/>
-                                                구매 내역 <span className="text-gray-400 text-sm font-normal">({myOrders.length}건)</span>
+                                                구매 내역 <span
+                                                className="text-gray-400 text-sm font-normal">({myOrders.length}건)</span>
                                             </h3>
                                         </div>
 
                                         {myOrders.length === 0 ? (
-                                            <div className="text-center py-16 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                                                <ShoppingBag className="w-12 h-12 mx-auto text-gray-300 mb-3" />
+                                            <div
+                                                className="text-center py-16 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                                                <ShoppingBag className="w-12 h-12 mx-auto text-gray-300 mb-3"/>
                                                 <p className="text-gray-500">아직 구매한 도서가 없습니다.</p>
                                             </div>
                                         ) : (
@@ -194,8 +215,10 @@ export function MyPage({ user, allBooks, onClose, onPasswordChange, onEditBook, 
                                                     const bookInfo = allBooks.find(b => b.id === order.bookId);
 
                                                     return (
-                                                        <div key={order.id} className="flex gap-5 p-5 bg-white border border-gray-200 rounded-xl hover:shadow-md transition-shadow">
-                                                            <div className="w-20 h-28 flex-shrink-0 bg-gray-100 rounded-md overflow-hidden border">
+                                                        <div key={order.id}
+                                                             className="flex gap-5 p-5 bg-white border border-gray-200 rounded-xl hover:shadow-md transition-shadow">
+                                                            <div
+                                                                className="w-20 h-28 flex-shrink-0 bg-gray-100 rounded-md overflow-hidden border">
                                                                 <img
                                                                     src={bookInfo ? bookInfo.coverImage : 'https://via.placeholder.com/150?text=No+Img'}
                                                                     alt="cover"
@@ -208,23 +231,28 @@ export function MyPage({ user, allBooks, onClose, onPasswordChange, onEditBook, 
                                                                         <h4 className="text-lg font-bold text-gray-900 line-clamp-1">
                                                                             {bookInfo ? bookInfo.title : '(삭제된 도서)'}
                                                                         </h4>
-                                                                        <span className="px-3 py-1 bg-green-50 text-green-700 text-xs font-bold rounded-full border border-green-200 flex items-center gap-1">
-                                                                            <CheckCircle className="w-3 h-3" /> 결제완료
+                                                                        <span
+                                                                            className="px-3 py-1 bg-green-50 text-green-700 text-xs font-bold rounded-full border border-green-200 flex items-center gap-1">
+                                                                            <CheckCircle className="w-3 h-3"/> 결제완료
                                                                         </span>
                                                                     </div>
                                                                     <p className="text-sm text-gray-500 mt-1">{bookInfo?.author}</p>
                                                                 </div>
                                                                 <div className="flex items-end justify-between mt-3">
-                                                                    <div className="text-sm text-gray-500 flex flex-col gap-1">
+                                                                    <div
+                                                                        className="text-sm text-gray-500 flex flex-col gap-1">
                                                                         <span className="flex items-center gap-1.5">
-                                                                            <Calendar className="w-3.5 h-3.5" />
+                                                                            <Calendar className="w-3.5 h-3.5"/>
                                                                             {formatDate(order.purchaseDate)}
                                                                         </span>
-                                                                        <span className="text-xs text-gray-400">주문번호: {order.id.slice(0, 8)}</span>
+                                                                        <span
+                                                                            className="text-xs text-gray-400">주문번호: {order.id.slice(0, 8)}</span>
                                                                     </div>
                                                                     <div className="text-right">
-                                                                        <span className="text-sm text-gray-500 mr-2">{order.quantity}권</span>
-                                                                        <span className="text-xl font-bold text-indigo-600">
+                                                                        <span
+                                                                            className="text-sm text-gray-500 mr-2">{order.quantity}권</span>
+                                                                        <span
+                                                                            className="text-xl font-bold text-indigo-600">
                                                                             {order.totalPrice.toLocaleString()}원
                                                                         </span>
                                                                     </div>
@@ -243,24 +271,36 @@ export function MyPage({ user, allBooks, onClose, onPasswordChange, onEditBook, 
                                     <div>
                                         <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
                                             <BookOpen className="w-5 h-5 text-indigo-600"/>
-                                            등록한 도서 <span className="text-gray-400 text-sm font-normal">({myBooks.length}권)</span>
+                                            등록한 도서 <span
+                                            className="text-gray-400 text-sm font-normal">({myBooks.length}권)</span>
                                         </h3>
                                         {myBooks.length === 0 ? (
                                             <p className="text-gray-500">등록한 도서가 없습니다.</p>
                                         ) : (
                                             <div className="grid gap-3">
                                                 {myBooks.map(book => (
-                                                    <div key={book.id} className="flex items-center justify-between p-4 border rounded-lg bg-white hover:bg-gray-50 transition-colors">
+                                                    <div key={book.id}
+                                                         className="flex items-center justify-between p-4 border rounded-lg bg-white hover:bg-gray-50 transition-colors">
                                                         <div className="flex items-center gap-3">
-                                                            <img src={book.coverImage} className="w-10 h-14 object-cover rounded bg-gray-100" alt="cover" />
+                                                            <img src={book.coverImage}
+                                                                 className="w-10 h-14 object-cover rounded bg-gray-100"
+                                                                 alt="cover"/>
                                                             <div>
                                                                 <div className="font-bold">{book.title}</div>
-                                                                <div className="text-xs text-gray-500">재고: {book.stock}권</div>
+                                                                <div
+                                                                    className="text-xs text-gray-500">재고: {book.stock}권
+                                                                </div>
                                                             </div>
                                                         </div>
                                                         <div className="flex gap-2">
-                                                            <button onClick={() => onEditBook(book)} className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"><Edit2 className="w-4 h-4"/></button>
-                                                            <button onClick={() => { if(confirm('정말 삭제하시겠습니까?')) onDeleteBook(book.id) }} className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"><Trash2 className="w-4 h-4"/></button>
+                                                            <button onClick={() => onEditBook(book)}
+                                                                    className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors">
+                                                                <Edit2 className="w-4 h-4"/></button>
+                                                            <button onClick={() => {
+                                                                if (confirm('정말 삭제하시겠습니까?')) onDeleteBook(book.id)
+                                                            }}
+                                                                    className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors">
+                                                                <Trash2 className="w-4 h-4"/></button>
                                                         </div>
                                                     </div>
                                                 ))}
@@ -278,7 +318,7 @@ export function MyPage({ user, allBooks, onClose, onPasswordChange, onEditBook, 
 }
 
 // 하위 컴포넌트들
-function MenuButton({ active, onClick, icon, label }: any) {
+function MenuButton({active, onClick, icon, label}: any) {
     return (
         <button
             onClick={onClick}
@@ -292,7 +332,7 @@ function MenuButton({ active, onClick, icon, label }: any) {
     );
 }
 
-function InputGroup({ label, type, value, onChange }: any) {
+function InputGroup({label, type, value, onChange}: any) {
     return (
         <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
@@ -307,7 +347,7 @@ function InputGroup({ label, type, value, onChange }: any) {
     );
 }
 
-function UserIconWrapper({ role }: { role: string }) {
+function UserIconWrapper({role}: { role: string }) {
     return <div className={`text-${role === 'admin' ? 'purple' : 'indigo'}-600 font-bold`}>
         {role === 'admin' ? 'A' : 'U'}
     </div>;
